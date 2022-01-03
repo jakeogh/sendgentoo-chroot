@@ -36,70 +36,52 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import click
 import sh
 from asserttool import eprint
 from asserttool import ic
 from asserttool import root_user
+from asserttool import tv
+from asserttool import validate_slice
 from boottool import make_hybrid_mbr
-from clicktool import add_options
-from clicktool import click_mesa_options
+from clicktool import click_add_options
+from clicktool import click_global_options
+from clicktool.mesa import click_mesa_options
 from mounttool import mount_something
 from mounttool import path_is_mounted
 from pathtool import path_is_block_special
 from pathtool import write_line_to_file
+from retry_on_exception import retry_on_exception
 from run_command import run_command
+from unmp import unmp
 from with_chdir import chdir
 
 signal(SIGPIPE, SIG_DFL)
-from pathlib import Path
-from typing import ByteString
-from typing import Generator
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
-
-#from with_sshfs import sshfs
-#from with_chdir import chdir
-from asserttool import eprint
-from asserttool import ic
-from asserttool import nevd
-from asserttool import validate_slice
-from asserttool import verify
-from enumerate_input import enumerate_input
-from retry_on_exception import retry_on_exception
-
 
 @click.group()
-@click.option('--verbose', is_flag=True)
-@click.option('--debug', is_flag=True)
+@click_add_options(click_global_options)
 @click.pass_context
 def cli(ctx,
-        verbose: bool,
-        debug: bool,
+        verbose: int,
+        verbose_inf: bool,
         ):
-
-    null, end, verbose, debug = nevd(ctx=ctx,
-                                     printn=False,
-                                     ipython=False,
-                                     verbose=verbose,
-                                     debug=debug,)
-
-
+    tty, verbose = tv(ctx=ctx,
+                      verbose=verbose,
+                      verbose_inf=verbose_inf,
+                      )
 
 
 @cli.command()
 @click.argument("mount_path")
-@click.option('--verbose', is_flag=True)
-@click.option('--debug', is_flag=True)
+@click_add_options(click_global_options)
+@click.pass_context
 def rsync_cfg(*,
               mount_path: str,
-              verbose: bool,
-              debug: bool,
+              verbose: int,
+              verbose_inf: bool,
               ):
 
     if not root_user():
@@ -142,11 +124,10 @@ def rsync_cfg(*,
 @click.option('--ip-gateway', type=str, required=True)
 @click.option('--pinebook-overlay', type=str, required=False)
 @click.option('--vm', required=False, type=click.Choice(['qemu']))
-@click.option('--verbose', is_flag=True)
-@click.option('--debug', is_flag=True)
 @click.option('--ipython', is_flag=True)
 @click.option('--kernel', is_flag=False, required=True, type=click.Choice(['gentoo-sources', 'pinebookpro-manjaro-sources']),default='gentoo-sources')
-@add_options(click_mesa_options)
+@click_add_options(click_mesa_options)
+@click_add_options(click_global_options)
 @click.pass_context
 def chroot_gentoo(ctx,
                   mount_path: str,
@@ -165,20 +146,20 @@ def chroot_gentoo(ctx,
                   mesa_use_disable: list[str],
                   pinebook_overlay: bool,
                   kernel: str,
-                  verbose: bool,
-                  debug: bool,
+                  verbose: int,
+                  verbose_inf: bool,
                   ipython: bool,
                   ):
 
     mount_path = Path(mount_path)
-    assert path_is_mounted(mount_path, verbose=verbose, debug=debug,)
+    assert path_is_mounted(mount_path, verbose=verbose, )
 
     if not skip_to_rsync:
 
         ctx.invoke(make_hybrid_mbr,
                    boot_device=boot_device,
                    verbose=verbose,
-                   debug=debug,)
+                   )
 
         #if [[ "${vm}" == "qemu" ]];
         #then
@@ -189,23 +170,23 @@ def chroot_gentoo(ctx,
                            line='config_eth0="{ip}/24"\n'.format(ip=ip),
                            unique=True,
                            verbose=verbose,
-                           debug=debug,)
+                           )
 
         write_line_to_file(path=mount_path / Path('etc') / Path('conf.d') / Path('net'),
                            line='routes_eth0="default via {ip_gateway}"\n'.format(ip_gateway=ip_gateway),
                            unique=True,
                            verbose=verbose,
-                           debug=debug,)
+                           )
 
         write_line_to_file(path=mount_path / Path('etc') / Path('conf.d') / Path('hostname'),
                            line='hostname="{hostname}"\n'.format(hostname=hostname),
                            unique=True,
                            verbose=verbose,
-                           debug=debug,)
+                           )
 
-    mount_something(mountpoint=mount_path / Path('proc'), mount_type='proc', source=None, verbose=verbose, debug=debug)
-    mount_something(mountpoint=mount_path / Path('sys'), mount_type='rbind', source=Path('/sys'), verbose=verbose, debug=debug)
-    mount_something(mountpoint=mount_path / Path('dev'), mount_type='rbind', source=Path('/dev'), verbose=verbose, debug=debug)
+    mount_something(mountpoint=mount_path / Path('proc'), mount_type='proc', source=None, verbose=verbose,)
+    mount_something(mountpoint=mount_path / Path('sys'), mount_type='rbind', source=Path('/sys'), verbose=verbose,)
+    mount_something(mountpoint=mount_path / Path('dev'), mount_type='rbind', source=Path('/dev'), verbose=verbose,)
 
     os.makedirs(mount_path / Path('home') / Path('cfg'), exist_ok=True)
 
@@ -214,13 +195,13 @@ def chroot_gentoo(ctx,
     _var_tmp_portage = mount_path / Path('var') / Path('tmp') / Path('portage')
     os.makedirs(_var_tmp_portage, exist_ok=True)
     sh.chown('portage:portage', _var_tmp_portage)
-    mount_something(mountpoint=_var_tmp_portage, mount_type='rbind', source=Path('/var/tmp/portage'), verbose=verbose, debug=debug)
+    mount_something(mountpoint=_var_tmp_portage, mount_type='rbind', source=Path('/var/tmp/portage'), verbose=verbose,)
     del _var_tmp_portage
 
     ctx.invoke(rsync_cfg,
                mount_path=mount_path,
                verbose=verbose,
-               debug=debug,)
+               )
 
     _repos_conf = mount_path / Path('etc') / Path('portage') / Path('repos.conf')
     os.makedirs(_repos_conf, exist_ok=True)
@@ -229,7 +210,7 @@ def chroot_gentoo(ctx,
 
     _gentoo_repo = mount_path / Path('var') / Path('db') / Path('repos') / Path('gentoo')
     os.makedirs(_gentoo_repo, exist_ok=True)
-    mount_something(mountpoint=_gentoo_repo, mount_type='rbind', source=Path('/var/db/repos/gentoo'), verbose=verbose, debug=debug)
+    mount_something(mountpoint=_gentoo_repo, mount_type='rbind', source=Path('/var/db/repos/gentoo'), verbose=verbose,)
     del _gentoo_repo
 
     sh.cp('/etc/portage/proxy.conf', mount_path / Path('etc') / Path('portage') / Path('proxy.conf'))
@@ -238,13 +219,13 @@ def chroot_gentoo(ctx,
                        line='source /etc/portage/proxy.conf\n',
                        unique=True,
                        verbose=verbose,
-                       debug=debug,)
+                       )
 
     write_line_to_file(path=mount_path / Path('etc') / Path('hosts'),
                        line='127.0.0.1\tlocalhost\t{hostname}\n'.format(hostname=hostname),
                        unique=True,
                        verbose=verbose,
-                       debug=debug,)
+                       )
 
     mesa_use = []
     for flag in mesa_use_enable:
@@ -258,7 +239,7 @@ def chroot_gentoo(ctx,
                        line=mesa_use + '\n',
                        unique=True,
                        verbose=verbose,
-                       debug=debug,)
+                       )
 
     sh.cp('/usr/bin/ischroot', mount_path / Path('usr') / Path('bin') / Path('ischroot'))  # bug for cross compile
 
