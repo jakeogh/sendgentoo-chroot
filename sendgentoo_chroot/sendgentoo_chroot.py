@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
-# flake8: noqa           # flake8 has no per file settings :(
 # pylint: disable=C0111  # docstrings are always outdated and wrong
 # pylint: disable=C0114  #      Missing module docstring (missing-module-docstring)
 # pylint: disable=W0511  # todo is encouraged
@@ -41,15 +40,15 @@ from typing import Union
 
 import click
 import sh
-from asserttool import eprint
 from asserttool import ic
 from asserttool import root_user
-from asserttool import tv
 from asserttool import validate_slice
 from boottool import make_hybrid_mbr
 from clicktool import click_add_options
 from clicktool import click_global_options
+from clicktool import tv
 from clicktool.mesa import click_mesa_options
+from eprint import eprint
 from mounttool import mount_something
 from mounttool import path_is_mounted
 from pathtool import path_is_block_special
@@ -61,11 +60,12 @@ from with_chdir import chdir
 
 signal(SIGPIPE, SIG_DFL)
 
-@click.group()
+
+@click.group(no_args_is_help=True)
 @click_add_options(click_global_options)
 @click.pass_context
 def cli(ctx,
-        verbose: int,
+        verbose: Union[bool, int, float],
         verbose_inf: bool,
         ):
     tty, verbose = tv(ctx=ctx,
@@ -78,11 +78,15 @@ def cli(ctx,
 @click.argument("mount_path")
 @click_add_options(click_global_options)
 @click.pass_context
-def rsync_cfg(*,
+def rsync_cfg(ctx,
               mount_path: str,
-              verbose: int,
+              verbose: Union[bool, int, float],
               verbose_inf: bool,
               ):
+    tty, verbose = tv(ctx=ctx,
+                      verbose=verbose,
+                      verbose_inf=verbose_inf,
+                      )
 
     if not root_user():
         ic('You must be root.')
@@ -146,10 +150,14 @@ def chroot_gentoo(ctx,
                   mesa_use_disable: list[str],
                   pinebook_overlay: bool,
                   kernel: str,
-                  verbose: int,
+                  verbose: Union[bool, int, float],
                   verbose_inf: bool,
                   ipython: bool,
                   ):
+    tty, verbose = tv(ctx=ctx,
+                      verbose=verbose,
+                      verbose_inf=verbose_inf,
+                      )
 
     mount_path = Path(mount_path)
     assert path_is_mounted(mount_path, verbose=verbose, )
