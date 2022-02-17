@@ -24,25 +24,24 @@
 
 import os
 import sys
-import time
+#import time
 from pathlib import Path
 from signal import SIG_DFL
 from signal import SIGPIPE
 from signal import signal
-from typing import ByteString
-from typing import Generator
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+#from typing import ByteString
+#from typing import Generator
+#from typing import Iterable
+#from typing import List
+#from typing import Optional
+#from typing import Sequence
+#from typing import Tuple
 from typing import Union
 
 import click
 import sh
 from asserttool import ic
 from asserttool import root_user
-from asserttool import validate_slice
 from boottool import make_hybrid_mbr
 from clicktool import click_add_options
 from clicktool import click_global_options
@@ -51,9 +50,9 @@ from clicktool.mesa import click_mesa_options
 from eprint import eprint
 from mounttool import mount_something
 from mounttool import path_is_mounted
-from pathtool import path_is_block_special
+#from pathtool import path_is_block_special
 from pathtool import write_line_to_file
-from retry_on_exception import retry_on_exception
+#from retry_on_exception import retry_on_exception
 from run_command import run_command
 from unmp import unmp
 from with_chdir import chdir
@@ -92,7 +91,7 @@ def rsync_cfg(ctx,
         ic('You must be root.')
         sys.exit(1)
 
-    with chdir('/home/'):
+    with chdir('/home/', verbose=verbose,):
         rsync_command = ['rsync',
                          '--exclude="_priv"',
                          '--exclude="_myapps/gentoo"',
