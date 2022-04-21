@@ -100,6 +100,7 @@ def rsync_cfg(
         "/home/",
         verbose=verbose,
     ):
+        #    "--verbose",
         rsync_command = [
             "rsync",
             '--exclude="_priv"',
@@ -110,7 +111,6 @@ def rsync_cfg(
             "--perms",
             "--executability",
             "--human-readable",
-            "--verbose",
             "--recursive",
             "--links",
             "--progress",
