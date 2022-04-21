@@ -219,6 +219,8 @@ def chroot_gentoo(
             make_hybrid_mbr,
             boot_device=boot_device,
             verbose=verbose,
+            verbose_inf=verbose_inf,
+            dict_input=dict_input,
         )
 
         # if [[ "${vm}" == "qemu" ]];
@@ -228,23 +230,21 @@ def chroot_gentoo(
 
         write_line_to_file(
             path=mount_path / Path("etc") / Path("conf.d") / Path("net"),
-            line='config_eth0="{ip}/24"\n'.format(ip=ip),
+            line=f'config_eth0="{ip}/24"\n',
             unique=True,
             verbose=verbose,
         )
 
         write_line_to_file(
             path=mount_path / Path("etc") / Path("conf.d") / Path("net"),
-            line='routes_eth0="default via {ip_gateway}"\n'.format(
-                ip_gateway=ip_gateway
-            ),
+            line=f'routes_eth0="default via {ip_gateway}"\n',
             unique=True,
             verbose=verbose,
         )
 
         write_line_to_file(
             path=mount_path / Path("etc") / Path("conf.d") / Path("hostname"),
-            line='hostname="{hostname}"\n'.format(hostname=hostname),
+            line=f'hostname="{hostname}"\n',
             unique=True,
             verbose=verbose,
         )
@@ -322,7 +322,7 @@ def chroot_gentoo(
 
     write_line_to_file(
         path=mount_path / Path("etc") / Path("hosts"),
-        line="127.0.0.1\tlocalhost\t{hostname}\n".format(hostname=hostname),
+        line=f"127.0.0.1\tlocalhost\t{hostname}\n",
         unique=True,
         verbose=verbose,
     )
@@ -351,24 +351,6 @@ def chroot_gentoo(
     )  # bug for cross compile
 
     ic("Entering chroot")
-    # chroot_command = ['env',
-    #                  '-i',
-    #                  'HOME=/root',
-    #                  'TERM=$TERM',
-    #                  'chroot',
-    #                  Path(mount_path).as_posix(),
-    #                  '/bin/bash',
-    #                  '-l',
-    #                  '-c',
-    #                  'su',
-    #                  '-',
-    #                  '-c "/home/cfg/_myapps/sendgentoo/sendgentoo/post_chroot.sh {stdlib} {boot_device} {march} {root_filesystem} {newpasswd} {pinebook_overlay} {kernel}"'.format(stdlib=stdlib,
-    #                                                                                                                                                                                boot_device=boot_device,
-    #                                                                                                                                                                                march=march,
-    #                                                                                                                                                                                root_filesystem=root_filesystem,
-    #                                                                                                                                                                                newpasswd=newpasswd,
-    #                                                                                                                                                                                pinebook_overlay=str(int(pinebook_overlay)),
-    #                                                                                                                                                                                kernel=kernel)]
 
     chroot_binary = "chroot"
     if arch != "amd64":
