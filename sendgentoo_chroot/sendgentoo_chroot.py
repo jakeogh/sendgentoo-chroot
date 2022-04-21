@@ -56,8 +56,6 @@ from pathtool import write_line_to_file
 from run_command import run_command
 from with_chdir import chdir
 
-# from mptool import unmp
-
 signal(SIGPIPE, SIG_DFL)
 
 
@@ -68,6 +66,7 @@ def cli(
     ctx,
     verbose: Union[bool, int, float],
     verbose_inf: bool,
+    dict_input: bool,
 ):
     tty, verbose = tv(
         ctx=ctx,
@@ -85,6 +84,7 @@ def rsync_cfg(
     mount_path: str,
     verbose: Union[bool, int, float],
     verbose_inf: bool,
+    dict_input: bool,
 ):
     tty, verbose = tv(
         ctx=ctx,
@@ -198,6 +198,7 @@ def chroot_gentoo(
     kernel: str,
     verbose: Union[bool, int, float],
     verbose_inf: bool,
+    dict_input: bool,
     ipython: bool,
 ):
     tty, verbose = tv(
