@@ -214,7 +214,7 @@ def chroot_gentoo(
     )
 
     if not skip_to_rsync:
-
+        ic("making hbrid mbr")
         ctx.invoke(
             make_hybrid_mbr,
             boot_device=boot_device,
