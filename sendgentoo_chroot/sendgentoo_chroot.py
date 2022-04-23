@@ -101,6 +101,7 @@ def rsync_cfg(
         verbose=verbose,
     ):
         #    "--verbose",
+        #    "--progress",
         rsync_command = [
             "rsync",
             '--exclude="_priv"',
@@ -113,7 +114,6 @@ def rsync_cfg(
             "--human-readable",
             "--recursive",
             "--links",
-            "--progress",
             "--times",
             '/home/cfg "{mount_path}/home/"'.format(mount_path=mount_path),
         ]
@@ -253,18 +253,28 @@ def chroot_gentoo(
         mountpoint=mount_path / Path("proc"),
         mount_type="proc",
         source=None,
+        slave=False,
         verbose=verbose,
     )
     mount_something(
         mountpoint=mount_path / Path("sys"),
         mount_type="rbind",
+        slave=True,
         source=Path("/sys"),
         verbose=verbose,
     )
     mount_something(
         mountpoint=mount_path / Path("dev"),
         mount_type="rbind",
+        slave=True,
         source=Path("/dev"),
+        verbose=verbose,
+    )
+    mount_something(
+        mountpoint=mount_path / Path("run"),
+        mount_type="bind",
+        slave=True,
+        source=Path("/run"),
         verbose=verbose,
     )
 
@@ -280,6 +290,7 @@ def chroot_gentoo(
     mount_something(
         mountpoint=_var_tmp_portage,
         mount_type="rbind",
+        slave=False,
         source=Path("/var/tmp/portage"),
         verbose=verbose,
     )
@@ -303,6 +314,7 @@ def chroot_gentoo(
     mount_something(
         mountpoint=_gentoo_repo,
         mount_type="rbind",
+        slave=False,
         source=Path("/var/db/repos/gentoo"),
         verbose=verbose,
     )
