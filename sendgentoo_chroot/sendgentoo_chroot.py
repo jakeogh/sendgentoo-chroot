@@ -357,6 +357,8 @@ def chroot_gentoo(
         verbose=verbose,
     )
 
+    sh.emerge("app-misc/tmux", "--fetchonly")
+
     sh.cp(
         "/usr/bin/ischroot", mount_path / Path("usr") / Path("bin") / Path("ischroot")
     )  # bug for cross compile
