@@ -393,5 +393,5 @@ def chroot_gentoo(
         kernel=kernel,
     )
     chroot_command.append(c_cmd)
-    run_command(" ".join(chroot_command), verbose=True, ask=True, system=True)
+    run_command(" ".join(chroot_command), verbose=True, ask=False, system=True)
     ic("chroot_gentoo.py complete!")
