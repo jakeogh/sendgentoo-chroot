@@ -283,9 +283,12 @@ def chroot_gentoo(
         mount_path / Path("usr") / Path("local") / Path("portage"), exist_ok=True
     )
 
+    os.system("emerge eprint")  # make sure /var/tmp/portage exists
+
     _var_tmp_portage = mount_path / Path("var") / Path("tmp") / Path("portage")
     os.makedirs(_var_tmp_portage, exist_ok=True)
     sh.chown("portage:portage", _var_tmp_portage)
+
     mount_something(
         mountpoint=_var_tmp_portage,
         mount_type="rbind",
