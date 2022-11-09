@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import os
 import sys
-# import time
 from pathlib import Path
 from signal import SIG_DFL
 from signal import SIGPIPE
@@ -33,29 +32,16 @@ import sh
 from asserttool import ic
 from asserttool import root_user
 from boottool import make_hybrid_mbr
+from click_auto_help import AHGroup
 from clicktool import click_add_options
 from clicktool import click_global_options
 from clicktool import tv
 from clicktool.mesa import click_mesa_options
-# from eprint import eprint
 from mounttool import mount_something
 from mounttool import path_is_mounted
-# from pathtool import path_is_block_special
 from pathtool import write_line_to_file
-# from retry_on_exception import retry_on_exception
 from run_command import run_command
 from with_chdir import chdir
-
-# from typing import ByteString
-# from typing import Generator
-# from typing import Iterable
-# # # from collections.abc import Sequence
-# from typing import Tuple
-
-
-
-
-
 
 signal(SIGPIPE, SIG_DFL)
 
