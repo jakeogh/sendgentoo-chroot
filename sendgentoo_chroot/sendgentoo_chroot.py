@@ -118,6 +118,7 @@ def rsync_cfg(
         icp(_sendgentoo_post_chroot)
 
         sh.cp(_sendgentoo_post_chroot, "/mnt/gentoo/tmp")
+        sh.chmod("+x", "/mnt/gentoo/tmp/sendgentoo_post_chroot.py")
         sh.cp("/etc/resolv.conf", "/mnt/gentoo/etc")
 
 
