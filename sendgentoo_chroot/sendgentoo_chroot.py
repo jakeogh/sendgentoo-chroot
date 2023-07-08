@@ -372,7 +372,7 @@ def chroot_gentoo(
         "--command",
     ]
     # c_cmd = '-c "/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --root-filesystem {root_filesystem} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel}"'
-    c_cmd = '"/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel} {configure_kernel}"'
+    c_cmd = '"/tmp/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel} {configure_kernel}"'
     c_cmd = c_cmd.format(
         stdlib=stdlib,
         boot_device=boot_device,
