@@ -85,7 +85,6 @@ def rsync_cfg(
 
     with chdir(
         "/home/",
-        verbose=verbose,
     ):
         #    "--verbose",
         #    "--progress",
@@ -199,7 +198,6 @@ def chroot_gentoo(
     mount_path = Path(mount_path)
     assert path_is_mounted(
         mount_path,
-        verbose=verbose,
     )
 
     if not skip_to_rsync:
@@ -221,21 +219,18 @@ def chroot_gentoo(
             path=mount_path / Path("etc") / Path("conf.d") / Path("net"),
             line=f'config_eth0="{ip}/24"\n',
             unique=True,
-            verbose=verbose,
         )
 
         write_line_to_file(
             path=mount_path / Path("etc") / Path("conf.d") / Path("net"),
             line=f'routes_eth0="default via {ip_gateway}"\n',
             unique=True,
-            verbose=verbose,
         )
 
         write_line_to_file(
             path=mount_path / Path("etc") / Path("conf.d") / Path("hostname"),
             line=f'hostname="{hostname}"\n',
             unique=True,
-            verbose=verbose,
         )
 
     mount_something(
@@ -243,28 +238,24 @@ def chroot_gentoo(
         mount_type="proc",
         source=None,
         slave=False,
-        verbose=verbose,
     )
     mount_something(
         mountpoint=mount_path / Path("sys"),
         mount_type="rbind",
         slave=True,
         source=Path("/sys"),
-        verbose=verbose,
     )
     mount_something(
         mountpoint=mount_path / Path("dev"),
         mount_type="rbind",
         slave=True,
         source=Path("/dev"),
-        verbose=verbose,
     )
     mount_something(
         mountpoint=mount_path / Path("run"),
         mount_type="bind",
         slave=True,
         source=Path("/run"),
-        verbose=verbose,
     )
 
     os.makedirs(mount_path / Path("home") / Path("cfg"), exist_ok=True)
@@ -284,20 +275,18 @@ def chroot_gentoo(
         mount_type="rbind",
         slave=False,
         source=Path("/var/tmp/portage"),
-        verbose=verbose,
     )
     del _var_tmp_portage
 
     ctx.invoke(
         rsync_cfg,
         mount_path=mount_path,
-        verbose=verbose,
     )
 
-    _repos_conf = mount_path / Path("etc") / Path("portage") / Path("repos.conf")
-    os.makedirs(_repos_conf, exist_ok=True)
-    sh.cp("/home/cfg/sysskel/etc/portage/repos.conf/gentoo.conf", _repos_conf)
-    del _repos_conf
+    # _repos_conf = mount_path / Path("etc") / Path("portage") / Path("repos.conf")
+    # os.makedirs(_repos_conf, exist_ok=True)
+    # sh.cp("/home/cfg/sysskel/etc/portage/repos.conf/gentoo.conf", _repos_conf)
+    # del _repos_conf
 
     _gentoo_repo = (
         mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
@@ -308,27 +297,25 @@ def chroot_gentoo(
         mount_type="rbind",
         slave=False,
         source=Path("/var/db/repos/gentoo"),
-        verbose=verbose,
     )
     del _gentoo_repo
 
-    sh.cp(
-        "/etc/portage/proxy.conf",
-        mount_path / Path("etc") / Path("portage") / Path("proxy.conf"),
-    )
+    if Path("/etc/portage/proxy.conf").exists():
+        sh.cp(
+            "/etc/portage/proxy.conf",
+            mount_path / Path("etc") / Path("portage") / Path("proxy.conf"),
+        )
 
-    write_line_to_file(
-        path=mount_path / Path("etc") / Path("portage") / Path("make.conf"),
-        line="source /etc/portage/proxy.conf\n",
-        unique=True,
-        verbose=verbose,
-    )
+        write_line_to_file(
+            path=mount_path / Path("etc") / Path("portage") / Path("make.conf"),
+            line="source /etc/portage/proxy.conf\n",
+            unique=True,
+        )
 
     write_line_to_file(
         path=mount_path / Path("etc") / Path("hosts"),
         line=f"127.0.0.1\tlocalhost\t{hostname}\n",
         unique=True,
-        verbose=verbose,
     )
 
     mesa_use = []
@@ -347,7 +334,6 @@ def chroot_gentoo(
         / Path("mesa"),
         line=mesa_use + "\n",
         unique=True,
-        verbose=verbose,
     )
 
     sh.emerge("app-misc/tmux", "--fetchonly")
