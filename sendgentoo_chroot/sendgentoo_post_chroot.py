@@ -54,16 +54,19 @@ except KeyError:
 
 syscmd("eselect news read all")
 
-with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
-    for line in fh:
-        line = line.strip()
-        line = "".join(line.split('"'))
-        line = "".join(line.split("#"))
-        if line:
-            # icp(line)
-            key = line.split("=")[0]
-            value = line.split("=")[1]
-            os.environ[key] = value
+try:
+    with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
+        for line in fh:
+            line = line.strip()
+            line = "".join(line.split('"'))
+            line = "".join(line.split("#"))
+            if line:
+                # icp(line)
+                key = line.split("=")[0]
+                value = line.split("=")[1]
+                os.environ[key] = value
+except FileNotFoundError:
+    pass
 
 syscmd("emerge --quiet dev-vcs/git -1 -u")
 syscmd("emerge --sync")
