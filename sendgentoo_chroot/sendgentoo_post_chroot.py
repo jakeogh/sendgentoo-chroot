@@ -140,9 +140,6 @@ def emerge_force(packages):
     )
 
 
-# emerge_force(
-#    ["pathtool", "portagetool", "devicetool", "boottool", "sendgentoo-post-chroot"]
-# )
 emerge_force(["sendgentoo-post-chroot"])
 
 from pathlib import Path
@@ -266,7 +263,8 @@ def cli(
     # ---- begin run once, critical stuff ----
 
     sh.passwd("-d", "root")
-    sh.chmod("+x", "-R", "/home/cfg/sysskel/etc/local.d/")
+    if Path("/home/sysskel/etc/local.d/").exists():
+        sh.chmod("+x", "-R", "/home/sysskel/etc/local.d/")
     # sh.eselect('python', 'list')  # depreciated
     sh.eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
     write_line_to_file(
@@ -382,7 +380,7 @@ def cli(
     if not Path("/usr/src/linux/.config").is_symlink():
         gurantee_symlink(
             relative=False,
-            target=Path("/home/cfg/sysskel/usr/src/linux_configs/.config"),
+            target=Path("/home/sysskel/usr/src/linux_configs/.config"),
             link_name=Path("/usr/src/linux_configs/.config"),
         )
         gurantee_symlink(
@@ -417,7 +415,7 @@ def cli(
 
     gurantee_symlink(
         relative=False,
-        target=Path("/home/cfg/sysskel/etc/skel/bin"),
+        target=Path("/home/sysskel/etc/skel/bin"),
         link_name=Path("/root/bin"),
     )
 
@@ -491,7 +489,6 @@ def cli(
     if configure_kernel:
         compile_kernel_command.bake("--configure")
     compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
-    # sh.cat /home/cfg/sysskel/etc/fstab.custom >> /etc/fstab
 
     # this cant be done until memtest86+ and the kernel are ready
     ctx.invoke(
