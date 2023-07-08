@@ -155,6 +155,7 @@ def rsync_cfg(
 @click.option("--pinebook-overlay", type=str, required=False)
 @click.option("--vm", required=False, type=click.Choice(["qemu"]))
 @click.option("--ipython", is_flag=True)
+@click.option("--configure-kernel", is_flag=True)
 @click.option(
     "--kernel",
     is_flag=False,
@@ -183,6 +184,7 @@ def chroot_gentoo(
     mesa_use_disable: list[str],
     pinebook_overlay: bool,
     kernel: str,
+    configure_kernel: bool,
     verbose_inf: bool,
     dict_output: bool,
     ipython: bool,
@@ -375,13 +377,14 @@ def chroot_gentoo(
         "--command",
     ]
     # c_cmd = '-c "/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --root-filesystem {root_filesystem} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel}"'
-    c_cmd = '"/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel}"'
+    c_cmd = '"/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel} {configure_kernel}"'
     c_cmd = c_cmd.format(
         stdlib=stdlib,
         boot_device=boot_device,
         march=march,
         newpasswd=newpasswd,
         pinebook_overlay=("--pinebook-overlay" if pinebook_overlay else ""),
+        configure_kernel=("--configure-kernel" if configure_kernel else ""),
         kernel=kernel,
     )
     chroot_command.append(c_cmd)
