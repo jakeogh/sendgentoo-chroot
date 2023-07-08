@@ -140,7 +140,7 @@ def emerge_force(packages):
     )
 
 
-emerge_force(["sendgentoo-post-chroot"])
+# emerge_force(["sendgentoo-post-chroot"])
 
 from pathlib import Path
 
@@ -365,29 +365,29 @@ def cli(
     )
     os.truncate(kernel_package_use, 0)  # dont leave symlink USE flag in place
 
-    os.makedirs("/usr/src/linux_configs", exist_ok=True)
+    # os.makedirs("/usr/src/linux_configs", exist_ok=True)
 
-    try:
-        os.unlink("/usr/src/linux/.config")  # shouldnt exist yet
-    except FileNotFoundError:
-        pass
+    # try:
+    #    os.unlink("/usr/src/linux/.config")  # shouldnt exist yet
+    # except FileNotFoundError:
+    #    pass
 
-    try:
-        os.unlink("/usr/src/linux_configs/.config")  # shouldnt exist yet
-    except FileNotFoundError:
-        pass
+    # try:
+    #    os.unlink("/usr/src/linux_configs/.config")  # shouldnt exist yet
+    # except FileNotFoundError:
+    #    pass
 
-    if not Path("/usr/src/linux/.config").is_symlink():
-        gurantee_symlink(
-            relative=False,
-            target=Path("/home/sysskel/usr/src/linux_configs/.config"),
-            link_name=Path("/usr/src/linux_configs/.config"),
-        )
-        gurantee_symlink(
-            relative=False,
-            target=Path("/usr/src/linux_configs/.config"),
-            link_name=Path("/usr/src/linux/.config"),
-        )
+    # if not Path("/usr/src/linux/.config").is_symlink():
+    #    gurantee_symlink(
+    #        relative=False,
+    #        target=Path("/home/sysskel/usr/src/linux_configs/.config"),
+    #        link_name=Path("/usr/src/linux_configs/.config"),
+    #    )
+    #    gurantee_symlink(
+    #        relative=False,
+    #        target=Path("/usr/src/linux_configs/.config"),
+    #        link_name=Path("/usr/src/linux/.config"),
+    #    )
 
     try:
         sh.grep("CONFIG_TRIM_UNUSED_KSYMS is not set", "/usr/src/linux/.config")
