@@ -141,6 +141,10 @@ def emerge_force(packages):
 
 
 # emerge_force(["sendgentoo-post-chroot"])
+emerge_force(["dev-python/portagetool"])
+emerge_force(["dev-python/asserttool"])
+emerge_force(["dev-python/boottool"])
+emerge_force(["dev-python/compile-kernel"])
 
 from pathlib import Path
 
