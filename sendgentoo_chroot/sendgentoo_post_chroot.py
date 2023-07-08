@@ -145,6 +145,7 @@ emerge_force(["dev-python/portagetool"])
 emerge_force(["dev-python/asserttool"])
 emerge_force(["dev-python/boottool"])
 emerge_force(["dev-python/compile-kernel"])
+emerge_force(["dev-python/icecream"])
 
 from pathlib import Path
 
