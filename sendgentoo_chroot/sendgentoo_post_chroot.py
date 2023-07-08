@@ -394,19 +394,19 @@ def cli(
     #        link_name=Path("/usr/src/linux/.config"),
     #    )
 
-    try:
-        sh.grep("CONFIG_TRIM_UNUSED_KSYMS is not set", "/usr/src/linux/.config")
-    except sh.ErrorReturnCode_1 as e:
-        icp(e)
-        eprint("ERROR: Rebuild the kernel with CONFIG_TRIM_UNUSED_KSYMS must be =n")
-        sys.exit(1)
+    # try:
+    #    sh.grep("CONFIG_TRIM_UNUSED_KSYMS is not set", "/usr/src/linux/.config")
+    # except sh.ErrorReturnCode_1 as e:
+    #    icp(e)
+    #    eprint("ERROR: Rebuild the kernel with CONFIG_TRIM_UNUSED_KSYMS must be =n")
+    #    sys.exit(1)
 
-    try:
-        sh.grep("CONFIG_FB_EFI is not set", "/usr/src/linux/.config", _ok_code=[1])
-    except sh.ErrorReturnCode_1 as e:
-        icp(e)
-        eprint("ERROR: Rebuild the kernel with CONFIG_FB_EFI=y")
-        sys.exit(1)
+    # try:
+    #    sh.grep("CONFIG_FB_EFI is not set", "/usr/src/linux/.config", _ok_code=[1])
+    # except sh.ErrorReturnCode_1 as e:
+    #    icp(e)
+    #    eprint("ERROR: Rebuild the kernel with CONFIG_FB_EFI=y")
+    #    sys.exit(1)
 
     write_line_to_file(
         path=Path("/etc") / Path("fstab"),
@@ -418,11 +418,11 @@ def cli(
     # grub-install --compress=no --target=x86_64-efi --efi-directory=/boot/efi --boot-directory=/boot --removable --recheck --no-rs-codes "${boot_device}" || exit 1
     # grub-install --compress=no --target=i386-pc --boot-directory=/boot --recheck --no-rs-codes "${boot_device}" || exit 1
 
-    gurantee_symlink(
-        relative=False,
-        target=Path("/home/sysskel/etc/skel/bin"),
-        link_name=Path("/root/bin"),
-    )
+    # gurantee_symlink(
+    #    relative=False,
+    #    target=Path("/home/sysskel/etc/skel/bin"),
+    #    link_name=Path("/root/bin"),
+    # )
 
     install_packages(
         ["gradm"],
