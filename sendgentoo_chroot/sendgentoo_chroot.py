@@ -51,9 +51,9 @@ signal(SIGPIPE, SIG_DFL)
 @click.pass_context
 def cli(
     ctx,
-    verbose: bool | int | float,
     verbose_inf: bool,
     dict_output: bool,
+    verbose: bool | int | float = False,
 ):
     tty, verbose = tv(
         ctx=ctx,
@@ -69,9 +69,9 @@ def cli(
 def rsync_cfg(
     ctx,
     mount_path: str,
-    verbose: bool | int | float,
     verbose_inf: bool,
     dict_output: bool,
+    verbose: bool | int | float = False,
 ):
     tty, verbose = tv(
         ctx=ctx,
@@ -183,10 +183,10 @@ def chroot_gentoo(
     mesa_use_disable: list[str],
     pinebook_overlay: bool,
     kernel: str,
-    verbose: bool | int | float,
     verbose_inf: bool,
     dict_output: bool,
     ipython: bool,
+    verbose: bool | int | float = False,
 ):
     tty, verbose = tv(
         ctx=ctx,
