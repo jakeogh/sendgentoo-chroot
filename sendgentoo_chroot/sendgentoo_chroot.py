@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 import sys
+from importlib import resources
 from pathlib import Path
 from signal import SIG_DFL
 from signal import SIGPIPE
@@ -30,6 +31,7 @@ from signal import signal
 import click
 import sh
 from asserttool import ic
+from asserttool import icp
 from asserttool import root_user
 from boottool import make_hybrid_mbr
 from click_auto_help import AHGroup
@@ -109,6 +111,13 @@ def rsync_cfg(
             ask=False,
             verbose=True,
         )
+
+    with resources.path(
+        "sendgentoo-chroot", "sendgentoo_post_chroot.py"
+    ) as _sendgentoo_post_chroot:
+        icp(_sendgentoo_post_chroot)
+
+        sh.cp(_sendgentoo_post_chroot, "/mnt/gentoo/tmp")
 
 
 @cli.command()
