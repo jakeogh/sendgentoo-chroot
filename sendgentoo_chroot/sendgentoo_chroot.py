@@ -113,7 +113,7 @@ def rsync_cfg(
         )
 
     with resources.path(
-        "sendgentoo-chroot", "sendgentoo_post_chroot.py"
+        "sendgentoo_chroot", "sendgentoo_post_chroot.py"
     ) as _sendgentoo_post_chroot:
         icp(_sendgentoo_post_chroot)
 
