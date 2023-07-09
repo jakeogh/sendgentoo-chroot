@@ -450,22 +450,23 @@ def cli(
     )
     os.makedirs("/etc/portage/repos.conf", exist_ok=True)
 
-    with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
-        for line in fh:
-            line = line.strip()
-            line = "".join(line.split('"'))
-            line = "".join(line.split("#"))
-            if line:
-                icp(line)
-                # key = line.split("=")[0]
-                # value = line.split("=")[1]
-                # os.environ[key] = value    # done at top of file
-                write_line_to_file(
-                    path=Path("/etc") / Path("wgetrc"),
-                    line=f"{line}\n",
-                    unique=True,
-                    unlink_first=False,
-                )
+    if Path("/etc/portage/proxy.conf").exists():
+        with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
+            for line in fh:
+                line = line.strip()
+                line = "".join(line.split('"'))
+                line = "".join(line.split("#"))
+                if line:
+                    icp(line)
+                    # key = line.split("=")[0]
+                    # value = line.split("=")[1]
+                    # os.environ[key] = value    # done at top of file
+                    write_line_to_file(
+                        path=Path("/etc") / Path("wgetrc"),
+                        line=f"{line}\n",
+                        unique=True,
+                        unlink_first=False,
+                    )
 
     write_line_to_file(
         path=Path("/etc") / Path("wgetrc"),
