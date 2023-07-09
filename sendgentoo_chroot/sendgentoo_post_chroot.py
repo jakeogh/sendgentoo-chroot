@@ -497,10 +497,7 @@ def cli(
     compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
 
     # this cant be done until memtest86+ and the kernel are ready
-    ctx.invoke(
-        install_grub,
-        boot_device=boot_device,
-    )
+    install_grub(boot_device=boot_device)
 
     sh.rc_update(
         "add", "zfs-mount", "boot", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
