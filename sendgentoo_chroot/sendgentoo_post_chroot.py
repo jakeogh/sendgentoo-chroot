@@ -415,9 +415,6 @@ def cli(
         unlink_first=True,
     )
 
-    # grub-install --compress=no --target=x86_64-efi --efi-directory=/boot/efi --boot-directory=/boot --removable --recheck --no-rs-codes "${boot_device}" || exit 1
-    # grub-install --compress=no --target=i386-pc --boot-directory=/boot --recheck --no-rs-codes "${boot_device}" || exit 1
-
     # gurantee_symlink(
     #    relative=False,
     #    target=Path("/home/sysskel/etc/skel/bin"),
