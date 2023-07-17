@@ -387,3 +387,115 @@ def chroot_gentoo(
     chroot_command.append(c_cmd)
     run_command(" ".join(chroot_command), verbose=True, ask=False, system=True)
     ic("chroot_gentoo.py complete!")
+
+
+@cli.command()
+@click.argument("mount_path")
+@click.option(
+    "--arch",
+    is_flag=False,
+    required=False,
+    type=click.Choice(
+        [
+            "alpha",
+            "amd64",
+            "arm",
+            "arm64",
+            "hppa",
+            "ia64",
+            "mips",
+            "ppc",
+            "s390",
+            "sh",
+            "sparc",
+            "x86",
+        ]
+    ),
+    default="amd64",
+)
+@click.option("--boot-device", type=str, required=True)
+@click.option(
+    "--root-filesystem",
+    required=False,
+    type=click.Choice(["ext4", "zfs", "9p"]),
+    default="ext4",
+)
+@click_add_options(click_global_options)
+@click.pass_context
+def chroot_gentoo_existing(
+    ctx,
+    mount_path: str,
+    stdlib: str,
+    arch: str,
+    boot_device: str,
+    root_filesystem: str,
+    verbose_inf: bool,
+    dict_output: bool,
+    ipython: bool,
+    verbose: bool | int | float = False,
+):
+    tty, verbose = tv(
+        ctx=ctx,
+        verbose=verbose,
+        verbose_inf=verbose_inf,
+    )
+
+    mount_path = Path(mount_path)
+    assert path_is_mounted(
+        mount_path,
+    )
+
+    mount_something(
+        mountpoint=mount_path / Path("proc"),
+        mount_type="proc",
+        source=None,
+        slave=False,
+    )
+    mount_something(
+        mountpoint=mount_path / Path("sys"),
+        mount_type="rbind",
+        slave=True,
+        source=Path("/sys"),
+    )
+    mount_something(
+        mountpoint=mount_path / Path("dev"),
+        mount_type="rbind",
+        slave=True,
+        source=Path("/dev"),
+    )
+    mount_something(
+        mountpoint=mount_path / Path("run"),
+        mount_type="bind",
+        slave=True,
+        source=Path("/run"),
+    )
+
+    _var_tmp_portage = mount_path / Path("var") / Path("tmp") / Path("portage")
+    mount_something(
+        mountpoint=_var_tmp_portage,
+        mount_type="rbind",
+        slave=False,
+        source=Path("/var/tmp/portage"),
+    )
+    del _var_tmp_portage
+
+    ic("Entering chroot")
+
+    chroot_binary = "chroot"
+    if arch != "amd64":
+        chroot_binary = "fchroot"
+
+    chroot_command = [
+        "env",
+        "-i",
+        "HOME=/root",
+        "TERM=$TERM",
+        chroot_binary,
+        Path(mount_path).as_posix(),
+        "/bin/bash",
+        "-l",
+        "-c",
+        "su",
+        "--login",
+    ]
+    run_command(" ".join(chroot_command), verbose=True, ask=False, system=True)
