@@ -258,6 +258,16 @@ def cli(
         unique=True,
     )
 
+    install_packages(
+        ["netdate"],
+        force=False,
+    )
+    sh.date(_out=sys.stdout, _err=sys.stderr)
+    sh.netdate(
+        "time.nist.gov", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
+    )  # todo, figure out NTP over proxy
+    sh.date(_out=sys.stdout, _err=sys.stderr)
+
     sh.emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
     # zfs_module_mode = "module"
@@ -490,7 +500,7 @@ def cli(
     )  # requires jakeogh overlay
     compile_kernel_command = sh.compile_kernel.bake("--no-check-boot")
     if configure_kernel:
-        compile_kernel_command.bake("--configure")
+        compile_kernel_command = compile_kernel_command.bake("--configure")
     compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
 
     # this cant be done until memtest86+ and the kernel are ready
@@ -510,16 +520,6 @@ def cli(
         link_name=Path("/etc/init.d/net.eth0"),
     )
     sh.rc_update("add", "net.eth0", "default", _out=sys.stdout, _err=sys.stderr)
-
-    install_packages(
-        ["netdate"],
-        force=False,
-    )
-    sh.date(_out=sys.stdout, _err=sys.stderr)
-    sh.netdate(
-        "time.nist.gov", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
-    )  # todo, figure out NTP over proxy
-    sh.date(_out=sys.stdout, _err=sys.stderr)
 
     install_packages(
         ["gpm"],
