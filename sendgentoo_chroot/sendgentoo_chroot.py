@@ -476,6 +476,17 @@ def chroot_gentoo_existing(
         source=Path("/var/tmp/portage"),
     )
     del _var_tmp_portage
+    _gentoo_repo = (
+        mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
+    )
+    os.makedirs(_gentoo_repo, exist_ok=True)
+    mount_something(
+        mountpoint=_gentoo_repo,
+        mount_type="rbind",
+        slave=False,
+        source=Path("/var/db/repos/gentoo"),
+    )
+    del _gentoo_repo
 
     ic("Entering chroot")
 
