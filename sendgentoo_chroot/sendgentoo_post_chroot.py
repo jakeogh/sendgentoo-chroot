@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+# pylint: disable=useless-suppression             # [I0021]
 # pylint: disable=missing-docstring               # [C0111] docstrings are always outdated and wrong
-# pylint: disable=C0114  #      Missing module docstring (missing-module-docstring)
-# pylint: disable=fixme                           # [W0511] todo is encouraged
+# pylint: disable=missing-param-doc               # [W9015]
+# pylint: disable=missing-module-docstring        # [C0114]
+# pylint: disable=fixme                           # [W0511] todo encouraged
 # pylint: disable=line-too-long                   # [C0301]
 # pylint: disable=too-many-instance-attributes    # [R0902]
 # pylint: disable=too-many-lines                  # [C0302] too many lines in module
@@ -14,6 +16,7 @@
 # pylint: disable=too-many-arguments              # [R0913]
 # pylint: disable=too-many-nested-blocks          # [R1702]
 # pylint: disable=too-many-locals                 # [R0914]
+# pylint: disable=too-many-public-methods         # [R0904]
 # pylint: disable=too-few-public-methods          # [R0903]
 # pylint: disable=no-member                       # [E1101] no member for base
 # pylint: disable=attribute-defined-outside-init  # [W0201]
