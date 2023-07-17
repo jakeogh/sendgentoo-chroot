@@ -375,8 +375,10 @@ def cli(
             "dev-util/strace",
             "app-text/wgetpaste",
             "memtest86+",
+            "dhcpcd",
         ],
         force=False,
+        upgrade_only=True,
     )
     os.truncate(kernel_package_use, 0)  # dont leave symlink USE flag in place
 
@@ -504,6 +506,7 @@ def cli(
     # compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
 
     compile_kernel_command_str = f"{compile_kernel_command.path} {' '.join(compile_kernel_command._partial_baked_args)}"
+    eprint(f"{compile_kernel_command_str=}")
     os.system(compile_kernel_command_str)
 
     # this cant be done until memtest86+ and the kernel are ready
@@ -512,10 +515,6 @@ def cli(
     sh.rc_update(
         "add", "zfs-mount", "boot", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
     )  # dont exit if this fails
-    install_packages(
-        ["dhcpcd"],
-        force=False,
-    )  # not in stage3
 
     gurantee_symlink(
         relative=False,
@@ -527,6 +526,7 @@ def cli(
     install_packages(
         ["gpm"],
         force=False,
+        upgrade_only=True,
     )
     sh.rc_update(
         "add", "gpm", "default", _out=sys.stdout, _err=sys.stderr
@@ -538,6 +538,7 @@ def cli(
     install_packages(
         ["app-admin/sysklogd"],
         force=False,
+        upgrade_only=True,
     )
     sh.rc_update(
         "add", "sysklogd", "default", _out=sys.stdout, _err=sys.stderr
@@ -547,6 +548,7 @@ def cli(
     install_packages(
         ["unison"],
         force=False,
+        upgrade_only=True,
     )
     # sh.eselect('unison', 'list') #todo
 
@@ -591,11 +593,13 @@ def cli(
             "app-misc/screen",
         ],
         force=True,
+        upgrade_only=True,
     )
 
     install_packages(
         ["dev-util/fatrace"],
         force=True,
+        upgrade_only=True,
     )  # jakeogh overlay fatrace-9999 (C version)
     install_packages(
         ["dev-python/replace-text"],
