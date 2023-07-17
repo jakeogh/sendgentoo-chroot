@@ -371,7 +371,6 @@ def cli(
     install_packages(
         [
             f"sys-kernel/{kernel}",
-            "grub",
             "dev-util/strace",
             "app-text/wgetpaste",
             "memtest86+",
