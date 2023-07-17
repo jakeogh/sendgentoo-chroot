@@ -501,7 +501,10 @@ def cli(
     compile_kernel_command = sh.compile_kernel.bake("--no-check-boot")
     if configure_kernel:
         compile_kernel_command = compile_kernel_command.bake("--configure")
-    compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
+    # compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
+
+    compile_kernel_command_str = f"{compile_kernel_command.path} {' '.join(compile_kernel_command._partial_baked_args)}"
+    os.system(compile_kernel_command_str)
 
     # this cant be done until memtest86+ and the kernel are ready
     install_grub(boot_device=boot_device)
