@@ -425,13 +425,11 @@ def chroot_gentoo(
 def chroot_gentoo_existing(
     ctx,
     mount_path: str,
-    stdlib: str,
     arch: str,
     boot_device: str,
     root_filesystem: str,
     verbose_inf: bool,
     dict_output: bool,
-    ipython: bool,
     verbose: bool | int | float = False,
 ):
     tty, verbose = tv(
