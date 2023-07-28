@@ -149,6 +149,7 @@ emerge_force(["dev-python/asserttool"])
 emerge_force(["dev-python/boottool"])
 emerge_force(["dev-python/compile-kernel"])
 emerge_force(["dev-python/icecream"])
+emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 
 from pathlib import Path
 
