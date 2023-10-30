@@ -159,7 +159,7 @@ from asserttool import icp
 from boottool import install_grub
 from clicktool import click_add_options
 from clicktool import click_global_options
-from clicktool import tv
+from clicktool import tvicgvd
 from eprint import eprint
 from globalverbose import gvd
 from mounttool import path_is_mounted
@@ -203,20 +203,15 @@ def cli(
     kernel: str,
     verbose_inf: bool,
     dict_output: bool,
-    verbose: bool | int | float = False,
+    verbose: bool = False,
 ):
-    tty, verbose = tv(
+    tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
         verbose_inf=verbose_inf,
+        ic=ic,
+        gvd=gvd,
     )
-    if not verbose:
-        ic.disable()
-    else:
-        ic.enable()
-
-    if verbose_inf:
-        gvd.enable()
 
     # musl: http://distfiles.gentoo.org/experimental/amd64/musl/HOWTO
     # spark: https://github.com/holman/spark.git
