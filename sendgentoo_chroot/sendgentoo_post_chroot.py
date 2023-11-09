@@ -91,20 +91,23 @@ if "jakeogh" not in sh.eselect("repository", "list", "-i"):
         _err=sys.stderr,
     )  # ignores http_proxy
 sh.emaint("sync", "-r", "jakeogh", _out=sys.stdout, _err=sys.stderr)  # this needs git
-if "pentoo" not in sh.eselect("repository", "list", "-i"):  # for fchroot (next time)
-    sh.eselect(
-        "repository", "enable", "pentoo", _out=sys.stdout, _err=sys.stderr
-    )  # ignores http_proxy
-sh.emaint("sync", "-r", "pentoo", _out=sys.stdout, _err=sys.stderr)  # this needs git
-if "guru" not in sh.eselect("repository", "list", "-i"):  # for fchroot (next time)
-    sh.eselect(
-        "repository",
-        "enable",
-        "guru",
-        _out=sys.stdout,
-        _err=sys.stderr,  # types-requests
-    )  # ignores http_proxy
-sh.emaint("sync", "-r", "guru", _out=sys.stdout, _err=sys.stderr)  # this needs git
+
+
+def enable_repository(repo: str):
+    if repo not in sh.eselect("repository", "list", "-i"):  # for fchroot (next time)
+        sh.eselect(
+            "repository",
+            "enable",
+            repo,
+            _out=sys.stdout,
+            _err=sys.stderr,
+        )  # ignores http_proxy
+    sh.emaint("sync", "-r", "guru", _out=sys.stdout, _err=sys.stderr)  # this needs git
+
+
+# enable_repository(repo='guru') # types-requests
+enable_repository(repo="pentoo")  # fchroot
+enable_repository(repo="natinst")  # dev-python/PyVISA-py
 
 
 def emerge_force(packages):
