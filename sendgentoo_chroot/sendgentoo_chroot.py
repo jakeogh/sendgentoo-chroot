@@ -37,8 +37,9 @@ from boottool import make_hybrid_mbr
 from click_auto_help import AHGroup
 from clicktool import click_add_options
 from clicktool import click_global_options
-from clicktool import tv
+from clicktool import tvicgvd
 from clicktool.mesa import click_mesa_options
+from globalverbose import gvd
 from mounttool import mount_something
 from mounttool import path_is_mounted
 from pathtool import write_line_to_file
@@ -55,12 +56,14 @@ def cli(
     ctx,
     verbose_inf: bool,
     dict_output: bool,
-    verbose: bool | int | float = False,
+    verbose: bool = False,
 ):
-    tty, verbose = tv(
+    tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
         verbose_inf=verbose_inf,
+        ic=ic,
+        gvd=gvd,
     )
 
 
@@ -73,12 +76,14 @@ def rsync_cfg(
     mount_path: str,
     verbose_inf: bool,
     dict_output: bool,
-    verbose: bool | int | float = False,
+    verbose: bool = False,
 ):
-    tty, verbose = tv(
+    tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
         verbose_inf=verbose_inf,
+        ic=ic,
+        gvd=gvd,
     )
 
     if not root_user():
@@ -198,12 +203,14 @@ def chroot_gentoo(
     verbose_inf: bool,
     dict_output: bool,
     ipython: bool,
-    verbose: bool | int | float = False,
+    verbose: bool = False,
 ):
-    tty, verbose = tv(
+    tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
         verbose_inf=verbose_inf,
+        ic=ic,
+        gvd=gvd,
     )
 
     mount_path = Path(mount_path)
@@ -302,7 +309,7 @@ def chroot_gentoo(
     _gentoo_repo = (
         mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
     )
-    os.makedirs(_gentoo_repo, exist_ok=True)
+    _gentoo_repo.mkdir(exist_ok=True)
     mount_something(
         mountpoint=_gentoo_repo,
         mount_type="rbind",
@@ -430,12 +437,14 @@ def chroot_gentoo_existing(
     root_filesystem: str,
     verbose_inf: bool,
     dict_output: bool,
-    verbose: bool | int | float = False,
+    verbose: bool = False,
 ):
-    tty, verbose = tv(
+    tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
         verbose_inf=verbose_inf,
+        ic=ic,
+        gvd=gvd,
     )
 
     mount_path = Path(mount_path)
