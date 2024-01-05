@@ -93,8 +93,6 @@ def rsync_cfg(
     with chdir(
         "/home/",
     ):
-        #    "--verbose",
-        #    "--progress",
         rsync_command = [
             "rsync",
             '--exclude="_priv"',
