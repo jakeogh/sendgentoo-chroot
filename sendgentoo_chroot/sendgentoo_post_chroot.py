@@ -579,6 +579,7 @@ def cli(
             "sys-fs/ncdu",
             "sys-process/htop",
             "sys-fs/ddrescue",
+            "sys-fs/dd-rescue",
             "net-dns/bind-tools",
             "sys-fs/bindfs",
             "app-admin/sysstat",
