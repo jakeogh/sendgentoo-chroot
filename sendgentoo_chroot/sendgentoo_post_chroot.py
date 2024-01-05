@@ -593,6 +593,7 @@ def cli(
             "dev-util/ctags",
             "sys-apps/moreutils",
             "app-misc/screen",
+            "app-portage/smart-live-rebuild",
         ],
         force=True,
         upgrade_only=True,
