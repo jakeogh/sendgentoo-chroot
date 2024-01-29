@@ -596,6 +596,7 @@ def cli(
             "sys-apps/moreutils",
             "app-misc/screen",
             "app-portage/smart-live-rebuild",
+            "emerge net-print/cups-meta",
         ],
         force=True,
         upgrade_only=True,
