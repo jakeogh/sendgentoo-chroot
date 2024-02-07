@@ -102,7 +102,7 @@ def enable_repository(repo: str):
             _out=sys.stdout,
             _err=sys.stderr,
         )  # ignores http_proxy
-    sh.emaint("sync", "-r", "guru", _out=sys.stdout, _err=sys.stderr)  # this needs git
+    sh.emaint("sync", "-r", repo, _out=sys.stdout, _err=sys.stderr)  # this needs git
 
 
 # enable_repository(repo='guru') # types-requests
