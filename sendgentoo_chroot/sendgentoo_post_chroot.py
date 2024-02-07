@@ -374,7 +374,7 @@ def cli(
     install_packages(
         [
             f"sys-kernel/{kernel}",
-            "dev-util/strace",
+            "dev-debug/strace",
             "app-text/wgetpaste",
             "memtest86+",
             "dhcpcd",
