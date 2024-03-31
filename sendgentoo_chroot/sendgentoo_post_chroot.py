@@ -155,6 +155,19 @@ emerge_force(["dev-python/icecream"])
 emerge_force(["dev-python/smarttool"])  # /etc/local.d/all_block_devices_passed.start
 emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 
+emerge_force(["portage-set-cflags-on-boot"])
+os.system("/home/sysskel/etc/local.d/portage_set_cflags.start")
+
+emerge_force(["portage-set-cpu-flags-on-boot"])
+os.system("/home/sysskel/etc/local.d/portage_set_cpu_flags.start")
+
+emerge_force(["portage-set-emerge-default-opts-on-boot"])
+os.system("/home/sysskel/etc/local.d/portage_set_emerge_default_opts.start")
+
+emerge_force(["portage-set-makeopts-on-boot"])
+os.system("/home/sysskel/etc/local.d/portage_set_makeopts.start")
+
+
 from pathlib import Path
 
 import click
@@ -349,9 +362,9 @@ def cli(
     # sh.gcc_config('latest', _out=sys.stdout, _err=sys.stderr)
 
     # install kernel and update symlink (via use flag)
-    os.environ[
-        "KCONFIG_OVERWRITECONFIG"
-    ] = "1"  # https://www.mail-archive.com/lede-dev@lists.infradead.org/msg07290.html
+    os.environ["KCONFIG_OVERWRITECONFIG"] = (
+        "1"  # https://www.mail-archive.com/lede-dev@lists.infradead.org/msg07290.html
+    )
 
     # required so /usr/src/linux exists
     kernel_package_use = (
