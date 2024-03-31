@@ -155,6 +155,7 @@ emerge_force(["dev-python/icecream"])
 emerge_force(["dev-python/smarttool"])  # /etc/local.d/all_block_devices_passed.start
 emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 
+# todo, move this to post_reboot, and make some kind of global /.native check
 emerge_force(["portage-set-cflags-on-boot"])
 os.system("/home/sysskel/etc/local.d/portage_set_cflags.start")
 
