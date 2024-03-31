@@ -449,9 +449,7 @@ def chroot_gentoo_existing(
     )
 
     mount_path = Path(mount_path)
-    assert path_is_mounted(
-        mount_path,
-    )
+    assert path_is_mounted(mount_path)
 
     mount_for_chroot(ctx=ctx, mount_path=mount_path)
 
