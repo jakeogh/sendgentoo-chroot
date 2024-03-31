@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
+# pylint: disable=useless-suppression             # [I0021]
 # pylint: disable=missing-docstring               # [C0111] docstrings are always outdated and wrong
-# pylint: disable=C0114  #      Missing module docstring (missing-module-docstring)
-# pylint: disable=fixme                           # [W0511] todo is encouraged
+# pylint: disable=missing-param-doc               # [W9015]
+# pylint: disable=missing-module-docstring        # [C0114]
+# pylint: disable=fixme                           # [W0511] todo encouraged
 # pylint: disable=line-too-long                   # [C0301]
 # pylint: disable=too-many-instance-attributes    # [R0902]
 # pylint: disable=too-many-lines                  # [C0302] too many lines in module
-# pylint: disable=invalid-name                    # [C0103] single letter var names, name too descriptive
+# pylint: disable=invalid-name                    # [C0103] single letter var names, name too descriptive(!)
 # pylint: disable=too-many-return-statements      # [R0911]
 # pylint: disable=too-many-branches               # [R0912]
 # pylint: disable=too-many-statements             # [R0915]
 # pylint: disable=too-many-arguments              # [R0913]
 # pylint: disable=too-many-nested-blocks          # [R1702]
 # pylint: disable=too-many-locals                 # [R0914]
+# pylint: disable=too-many-public-methods         # [R0904]
 # pylint: disable=too-few-public-methods          # [R0903]
 # pylint: disable=no-member                       # [E1101] no member for base
 # pylint: disable=attribute-defined-outside-init  # [W0201]
 # pylint: disable=too-many-boolean-expressions    # [R0916] in if statement
+
 from __future__ import annotations
 
 import os
@@ -47,6 +51,70 @@ from run_command import run_command
 from with_chdir import chdir
 
 signal(SIGPIPE, SIG_DFL)
+
+
+def mount_for_chroot(*, ctx, mount_path: Path):
+    mount_something(
+        mountpoint=mount_path / Path("proc"),
+        mount_type="proc",
+        source=None,
+        slave=False,
+    )
+    mount_something(
+        mountpoint=mount_path / Path("sys"),
+        mount_type="rbind",
+        slave=True,
+        source=Path("/sys"),
+    )
+    mount_something(
+        mountpoint=mount_path / Path("dev"),
+        mount_type="rbind",
+        slave=True,
+        source=Path("/dev"),
+    )
+    mount_something(
+        mountpoint=mount_path / Path("run"),
+        mount_type="bind",
+        slave=True,
+        source=Path("/run"),
+    )
+
+    os.makedirs(mount_path / Path("home") / Path("cfg"), exist_ok=True)
+
+    os.makedirs(
+        mount_path / Path("usr") / Path("local") / Path("portage"), exist_ok=True
+    )
+
+    os.system("emerge eprint")  # make sure /var/tmp/portage exists
+
+    _var_tmp_portage = mount_path / Path("var") / Path("tmp") / Path("portage")
+    os.makedirs(_var_tmp_portage, exist_ok=True)
+    sh.chown("portage:portage", _var_tmp_portage)
+
+    mount_something(
+        mountpoint=_var_tmp_portage,
+        mount_type="rbind",
+        slave=False,
+        source=Path("/var/tmp/portage"),
+    )
+    del _var_tmp_portage
+
+    _gentoo_repo = (
+        mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
+    )
+    _gentoo_repo.mkdir(exist_ok=True)
+    mount_something(
+        mountpoint=_gentoo_repo,
+        mount_type="rbind",
+        slave=False,
+        source=Path("/var/db/repos/gentoo"),
+    )
+    del _gentoo_repo
+
+    ctx.invoke(
+        rsync_cfg,
+        mount_path=mount_path,
+    )
 
 
 @click.group(no_args_is_help=True, cls=AHGroup)
@@ -249,72 +317,7 @@ def chroot_gentoo(
             unique=True,
         )
 
-    mount_something(
-        mountpoint=mount_path / Path("proc"),
-        mount_type="proc",
-        source=None,
-        slave=False,
-    )
-    mount_something(
-        mountpoint=mount_path / Path("sys"),
-        mount_type="rbind",
-        slave=True,
-        source=Path("/sys"),
-    )
-    mount_something(
-        mountpoint=mount_path / Path("dev"),
-        mount_type="rbind",
-        slave=True,
-        source=Path("/dev"),
-    )
-    mount_something(
-        mountpoint=mount_path / Path("run"),
-        mount_type="bind",
-        slave=True,
-        source=Path("/run"),
-    )
-
-    os.makedirs(mount_path / Path("home") / Path("cfg"), exist_ok=True)
-
-    os.makedirs(
-        mount_path / Path("usr") / Path("local") / Path("portage"), exist_ok=True
-    )
-
-    os.system("emerge eprint")  # make sure /var/tmp/portage exists
-
-    _var_tmp_portage = mount_path / Path("var") / Path("tmp") / Path("portage")
-    os.makedirs(_var_tmp_portage, exist_ok=True)
-    sh.chown("portage:portage", _var_tmp_portage)
-
-    mount_something(
-        mountpoint=_var_tmp_portage,
-        mount_type="rbind",
-        slave=False,
-        source=Path("/var/tmp/portage"),
-    )
-    del _var_tmp_portage
-
-    ctx.invoke(
-        rsync_cfg,
-        mount_path=mount_path,
-    )
-
-    # _repos_conf = mount_path / Path("etc") / Path("portage") / Path("repos.conf")
-    # os.makedirs(_repos_conf, exist_ok=True)
-    # sh.cp("/home/cfg/sysskel/etc/portage/repos.conf/gentoo.conf", _repos_conf)
-    # del _repos_conf
-
-    _gentoo_repo = (
-        mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
-    )
-    _gentoo_repo.mkdir(exist_ok=True)
-    mount_something(
-        mountpoint=_gentoo_repo,
-        mount_type="rbind",
-        slave=False,
-        source=Path("/var/db/repos/gentoo"),
-    )
-    del _gentoo_repo
+    mount_for_chroot(ctx=ctx, mount_path=mount_path)
 
     if Path("/etc/portage/proxy.conf").exists():
         sh.cp(
@@ -450,52 +453,9 @@ def chroot_gentoo_existing(
         mount_path,
     )
 
-    mount_something(
-        mountpoint=mount_path / Path("proc"),
-        mount_type="proc",
-        source=None,
-        slave=False,
-    )
-    mount_something(
-        mountpoint=mount_path / Path("sys"),
-        mount_type="rbind",
-        slave=True,
-        source=Path("/sys"),
-    )
-    mount_something(
-        mountpoint=mount_path / Path("dev"),
-        mount_type="rbind",
-        slave=True,
-        source=Path("/dev"),
-    )
-    mount_something(
-        mountpoint=mount_path / Path("run"),
-        mount_type="bind",
-        slave=True,
-        source=Path("/run"),
-    )
+    mount_for_chroot(ctx=ctx, mount_path=mount_path)
 
-    _var_tmp_portage = mount_path / Path("var") / Path("tmp") / Path("portage")
-    mount_something(
-        mountpoint=_var_tmp_portage,
-        mount_type="rbind",
-        slave=False,
-        source=Path("/var/tmp/portage"),
-    )
-    del _var_tmp_portage
-    _gentoo_repo = (
-        mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
-    )
-    os.makedirs(_gentoo_repo, exist_ok=True)
-    mount_something(
-        mountpoint=_gentoo_repo,
-        mount_type="rbind",
-        slave=False,
-        source=Path("/var/db/repos/gentoo"),
-    )
-    del _gentoo_repo
-
-    ic("Entering chroot")
+    icp("Entering chroot")
 
     chroot_binary = "chroot"
     if arch != "amd64":
