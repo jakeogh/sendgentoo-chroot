@@ -385,12 +385,14 @@ def cli(
     )
 
     # memtest86+ # do before generating grub.conf
+    # bug, /boot isnt even mounted
+    #        "memtest86+",
+    # do this in compile-kernel instead
     install_packages(
         [
             f"sys-kernel/{kernel}",
             "dev-debug/strace",
             "app-text/wgetpaste",
-            "memtest86+",
             "dhcpcd",
         ],
         force=False,
