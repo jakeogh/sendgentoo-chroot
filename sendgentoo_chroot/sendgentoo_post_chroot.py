@@ -77,6 +77,8 @@ syscmd("emerge --sync")
 syscmd(
     "emerge --quiet sys-apps/portage dev-python/click app-eselect/eselect-repository dev-python/sh -1 -u"
 )
+syscmd("emerge dev-python/sh -1")
+
 import sh
 
 os.makedirs("/etc/portage/repos.conf", exist_ok=True)
