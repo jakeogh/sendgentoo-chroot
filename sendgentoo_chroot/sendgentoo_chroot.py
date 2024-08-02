@@ -355,6 +355,8 @@ def chroot_gentoo(
         unique=True,
     )
 
+    os.system("/etc/init.d/tinyproxy start")
+
     sh.emerge("app-misc/tmux", "--fetchonly")
 
     sh.cp(
