@@ -528,7 +528,9 @@ def cli(
     # compile_kernel_command_str = f"{compile_kernel_command.path} {' '.join(compile_kernel_command._partial_baked_args)}"
     compile_kernel_command_str = f"{compile_kernel_command}"
     eprint(f"{compile_kernel_command_str=}")
-    os.system(compile_kernel_command_str)
+    _exit_status = os.WEXITSTATUS(os.system(compile_kernel_command_str))
+    if _exit_status != 0:
+        raise ValueError(f"{compile_kernel_command_str=} exited: {_exit_status=}")
 
     # this cant be done until memtest86+ and the kernel are ready
     install_grub(boot_device=boot_device)
