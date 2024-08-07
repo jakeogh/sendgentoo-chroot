@@ -668,10 +668,10 @@ def cli(
                 "/etc/inittab",
             )
 
-    # install_packages(
-    #    ["dev-python/sendgentoo-post-reboot"],
-    #    force=True,
-    # )
+    install_packages(
+        ["dev-python/sendgentoo-post-reboot"],
+        force=True,
+    )
 
     install_packages(
         ["dev-python/portagetool"],
