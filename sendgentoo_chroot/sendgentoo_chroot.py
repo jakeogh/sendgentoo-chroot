@@ -331,6 +331,8 @@ def chroot_gentoo(
             unique=True,
         )
 
+    sh.cp("-r", "/etc/portage/patches", mount_path / Path("etc") / Path("portage"))
+
     write_line_to_file(
         path=mount_path / Path("etc") / Path("hosts"),
         line=f"127.0.0.1\tlocalhost\t{hostname}\n",
