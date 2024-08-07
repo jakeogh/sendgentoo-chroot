@@ -331,7 +331,11 @@ def chroot_gentoo(
             unique=True,
         )
 
-    sh.cp("-ar", "/etc/portage/patches", mount_path / Path("etc") / Path("portage"))
+    sh.cp(
+        "-ar",
+        "/home/sysskel/etc/portage/patches",
+        mount_path / Path("etc") / Path("portage"),
+    )
 
     write_line_to_file(
         path=mount_path / Path("etc") / Path("hosts"),
