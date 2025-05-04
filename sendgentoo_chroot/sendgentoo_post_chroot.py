@@ -28,8 +28,9 @@ import logging
 import os
 import sys
 from signal import SIG_DFL
-from signal import SIGPIPE
 from signal import signal
+from signal import SIGPIPE
+import subprocess
 
 logging.basicConfig(level=logging.INFO)
 signal(SIGPIPE, SIG_DFL)
@@ -47,13 +48,29 @@ def syscmd(cmd):
 
 # os.rmdir("/var/db/repos/gentoo")
 # syscmd("emerge --sync")
-syscmd("emerge app-misc/tmux -u")
+
+
+if not os.environ.get('TMUX'):
+    print("Not running in tmux. Installing tmux...")
+    syscmd("emerge app-misc/tmux -u")
+    script_name = os.path.basename(__file__)
+    script_path = os.path.realpath(__file__)
+    print(f"Not running in tmux. Launching new tmux session...{script_path=} {sys.argv[1:]}")
+    # Launch new tmux session running this script
+    #subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
+    cmd = ['tmux', 'new-session', '-s', 'myscript', 'python3', script_path] + sys.argv[1:]
+    subprocess.run(cmd)
+    sys.exit(0)
+
+print("Running inside tmux!")
+print("Arguments received:", sys.argv[1:])
 
 try:
     print("os.environ['TMUX']:", os.environ["TMUX"])
 except KeyError:
     print("start tmux!", file=sys.stderr)
     sys.exit(1)
+
 
 syscmd("eselect news read all")
 
