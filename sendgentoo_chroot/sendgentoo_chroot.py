@@ -375,6 +375,22 @@ def chroot_gentoo(
     if arch != "amd64":
         chroot_binary = "fchroot"
 
+    # old:
+    # chroot_command = [
+    #     "env",
+    #     "-i",
+    #     "HOME=/root",
+    #     "TERM=$TERM",
+    #     chroot_binary,
+    #     Path(mount_path).as_posix(),
+    #     "/bin/bash",
+    #     "-l",
+    #     "-c",
+    #     "su",
+    #     "--login",
+    #     "--command",
+    # ]
+    #
     chroot_command = [
         "env",
         "-i",
@@ -385,10 +401,11 @@ def chroot_gentoo(
         "/bin/bash",
         "-l",
         "-c",
-        "su",
-        "--login",
-        "--command",
     ]
+
+    # new:
+    # env -i HOME=/root TERM=$TERM chroot /mnt/gentoo /bin/bash -l -c "/tmp/sendgentoo_post_chroot.py --stdlib glibc --boot-device /dev/sda --march native --newpasswd neww0rld --kernel gentoo-sources ; /bin/bash -l"
+
     # c_cmd = '-c "/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --root-filesystem {root_filesystem} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel}"'
     c_cmd = '"/tmp/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel} {configure_kernel}"'
     c_cmd = c_cmd.format(

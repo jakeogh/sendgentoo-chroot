@@ -59,6 +59,8 @@ if not os.environ.get('TMUX'):
     # Launch new tmux session running this script
     #subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
     cmd = ['tmux', 'new-session', '-s', 'myscript', 'python3', script_path] + sys.argv[1:]
+    print(f"{cmd=}")
+    print(f"{' '.join(cmd)=}")
     subprocess.run(cmd)
     sys.exit(0)
 
