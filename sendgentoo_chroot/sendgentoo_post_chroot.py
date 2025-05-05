@@ -63,6 +63,7 @@ if not os.environ.get("TMUX"):
     cmd = ["tmux", "new-session", "-s", "myscript", "python3", script_path] + sys.argv[
         1:
     ]
+    cmd.extend([";", "/bin/bash", "-l"])
     print(f"{cmd=}")
     print(f"{' '.join(cmd)=}")
     subprocess.run(cmd)
