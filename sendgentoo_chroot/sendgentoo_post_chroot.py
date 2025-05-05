@@ -26,11 +26,11 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import sys
 from signal import SIG_DFL
-from signal import signal
 from signal import SIGPIPE
-import subprocess
+from signal import signal
 
 logging.basicConfig(level=logging.INFO)
 signal(SIGPIPE, SIG_DFL)
@@ -50,15 +50,19 @@ def syscmd(cmd):
 # syscmd("emerge --sync")
 
 
-if not os.environ.get('TMUX'):
+if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
     syscmd("emerge app-misc/tmux -u")
     script_name = os.path.basename(__file__)
     script_path = os.path.realpath(__file__)
-    print(f"Not running in tmux. Launching new tmux session...{script_path=} {sys.argv[1:]}")
+    print(
+        f"Not running in tmux. Launching new tmux session...{script_path=} {sys.argv[1:]}"
+    )
     # Launch new tmux session running this script
-    #subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
-    cmd = ['tmux', 'new-session', '-s', 'myscript', 'python3', script_path] + sys.argv[1:]
+    # subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
+    cmd = ["tmux", "new-session", "-s", "myscript", "python3", script_path] + sys.argv[
+        1:
+    ]
     print(f"{cmd=}")
     print(f"{' '.join(cmd)=}")
     subprocess.run(cmd)
@@ -552,7 +556,11 @@ def cli(
         raise ValueError(f"{compile_kernel_command_str=} exited: {_exit_status=}")
 
     # this cant be done until memtest86+ and the kernel are ready
-    install_grub(boot_device=boot_device)
+    install_grub(
+        boot_device=boot_device,
+        skip_uefi=False,
+        debug_grub=False,
+    )
 
     sh.rc_update(
         "add", "zfs-mount", "boot", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
@@ -698,6 +706,7 @@ def cli(
     )
 
     eprint("sendgentoo_post_chroot.py complete! Exit chroot and reboot.")
+    _ans = input("Press enter to exit sendgentoo_post_chroot.py")
 
 
 if __name__ == "__main__":
