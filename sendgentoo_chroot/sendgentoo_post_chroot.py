@@ -599,6 +599,7 @@ def cli(
     # sys_apps/usbutils is required for boot scripts that use lsusb
     # dev-python/distro  # distro detection in boot scripts
     # dev-util/ctags     # so vim/nvim wont complain
+    # sys-process/glances  # needs rust
     install_packages(
         [
             "app-admin/sudo",
@@ -614,7 +615,6 @@ def cli(
             "sys-process/lsof",
             "sys-apps/lshw",
             "app-editors/hexedit",
-            "sys-process/glances",
             "app-admin/pydf",
             "sys-fs/ncdu",
             "sys-process/htop",
