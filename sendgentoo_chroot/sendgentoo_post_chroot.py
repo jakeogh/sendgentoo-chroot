@@ -69,6 +69,9 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
+    with open("/root/.tmux.conf", "a", encoding="utf8") as fh:
+        fh.write("\nset-option remain-on-exit on\n")
+
     syscmd("emerge app-misc/tmux -u")
     script_name = os.path.basename(__file__)
     script_path = os.path.realpath(__file__)
