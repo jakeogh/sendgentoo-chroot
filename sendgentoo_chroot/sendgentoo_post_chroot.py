@@ -49,6 +49,23 @@ def syscmd(cmd):
 # os.rmdir("/var/db/repos/gentoo")
 # syscmd("emerge --sync")
 
+import signal
+import time
+import traceback
+
+
+# Signal handler for SIGINT (Ctrl+C) and SIGTERM
+def signal_handler(sig, frame):
+    print(f"\nReceived signal {sig}. Pausing before exit...")
+    print("Stack trace:")
+    traceback.print_stack(frame)
+    time.sleep(5)  # Pause for 5 seconds
+    sys.exit(1)
+
+
+# Register signal handlers
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
@@ -63,7 +80,7 @@ if not os.environ.get("TMUX"):
     cmd = ["tmux", "new-session", "-s", "myscript", "python3", script_path] + sys.argv[
         1:
     ]
-    cmd.extend([";", "/bin/bash", "-l"])
+    # cmd.extend(["; /bin/bash -l"])
     print(f"{cmd=}")
     print(f"{' '.join(cmd)=}")
     subprocess.run(cmd)
@@ -426,30 +443,6 @@ def cli(
     )
     os.truncate(kernel_package_use, 0)  # dont leave symlink USE flag in place
 
-    # os.makedirs("/usr/src/linux_configs", exist_ok=True)
-
-    # try:
-    #    os.unlink("/usr/src/linux/.config")  # shouldnt exist yet
-    # except FileNotFoundError:
-    #    pass
-
-    # try:
-    #    os.unlink("/usr/src/linux_configs/.config")  # shouldnt exist yet
-    # except FileNotFoundError:
-    #    pass
-
-    # if not Path("/usr/src/linux/.config").is_symlink():
-    #    gurantee_symlink(
-    #        relative=False,
-    #        target=Path("/home/sysskel/usr/src/linux_configs/.config"),
-    #        link_name=Path("/usr/src/linux_configs/.config"),
-    #    )
-    #    gurantee_symlink(
-    #        relative=False,
-    #        target=Path("/usr/src/linux_configs/.config"),
-    #        link_name=Path("/usr/src/linux/.config"),
-    #    )
-
     # try:
     #    sh.grep("CONFIG_TRIM_UNUSED_KSYMS is not set", "/usr/src/linux/.config")
     # except sh.ErrorReturnCode_1 as e:
@@ -470,12 +463,6 @@ def cli(
         unique=False,
         unlink_first=True,
     )
-
-    # gurantee_symlink(
-    #    relative=False,
-    #    target=Path("/home/sysskel/etc/skel/bin"),
-    #    link_name=Path("/root/bin"),
-    # )
 
     install_packages(
         ["gradm"],
@@ -544,6 +531,7 @@ def cli(
         ["compile-kernel"],
         force=True,
     )  # requires jakeogh overlay
+    compile_kernel_command = sh.compile_kernel.bake("compile-and-install")
     compile_kernel_command = sh.compile_kernel.bake("--no-check-boot")
     if configure_kernel:
         compile_kernel_command = compile_kernel_command.bake("--configure")
@@ -711,5 +699,18 @@ def cli(
 
 
 if __name__ == "__main__":
-    # pylint: disable=E1120
-    cli()
+    try:
+        # pylint: disable=E1120
+        cli()
+    except SystemExit:
+        # Handle SystemExit separately to respect signal handler exit
+        raise
+    except Exception as e:
+        # Catch any unexpected exceptions in main
+        print(f"Unexpected error: {str(e)}")
+        print("Full traceback:")
+        traceback.print_exc()
+        print("waiting for ENTER to exit")
+        time.sleep(5)
+        input("press enter to exit")
+        sys.exit(1)
