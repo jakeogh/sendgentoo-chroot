@@ -117,13 +117,20 @@ if not os.environ.get("TMUX"):
     )
     # Launch new tmux session running this script
     # subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
-    sh.tmux("-L", "new-session", "start-server")
+    sh.tmux("-L", "sendgentoo", "start-server")
     time.sleep(3)
     os.system("ls -al /tmp/tmux-0/")
-    sh.tmux("-L", "new-session", "set-option", "-g", "remain-on-exit", "failed")
-    cmd = ["tmux", "new-session", "-s", "myscript", "python3", script_path] + sys.argv[
-        1:
-    ]
+    sh.tmux("-L", "sendgentoo", "set-option", "-g", "remain-on-exit", "failed")
+    cmd = [
+        "tmux",
+        "-L",
+        "sendgentoo",
+        "new-session",
+        "-s",
+        "myscript",
+        "python3",
+        script_path,
+    ] + sys.argv[1:]
     # cmd.extend(["; /bin/bash -l"])
     print(f"{cmd=}")
     print(f"{' '.join(cmd)=}")
