@@ -32,6 +32,8 @@ from signal import SIG_DFL
 from signal import SIGPIPE
 from signal import signal
 
+import sh
+
 logging.basicConfig(level=logging.INFO)
 signal(SIGPIPE, SIG_DFL)
 
@@ -45,9 +47,6 @@ def syscmd(cmd):
     print(cmd, file=sys.stderr)
     os.system(cmd)
 
-
-# os.rmdir("/var/db/repos/gentoo")
-# syscmd("emerge --sync")
 
 import signal
 import time
