@@ -200,6 +200,9 @@ def enable_repository(repo: str):
 # enable_repository(repo='guru') # types-requests
 enable_repository(repo="pentoo")  # fchroot
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
+enable_repository(
+    repo="slonko"
+)  # dev-python/convertdate and its dep dev-python/pymeeus to make dev-python/dateparser-9999::jakeogh happy, which portagetool below depends on
 
 
 # emerge_force(["sendgentoo-post-chroot"])
