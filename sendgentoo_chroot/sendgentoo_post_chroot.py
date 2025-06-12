@@ -117,7 +117,8 @@ if not os.environ.get("TMUX"):
     )
     # Launch new tmux session running this script
     # subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
-    sh.tmux("-L", "sendgentoo", "start-server")
+    # sh.tmux("-L", "sendgentoo", "start-server")
+    sh.tmux("-L", "sendgentoo", "new-session", "-d", "-s", "bootstrap")
     time.sleep(3)
     os.system("ls -al /tmp/tmux-0/")
     sh.tmux("-L", "sendgentoo", "set-option", "-g", "remain-on-exit", "failed")
