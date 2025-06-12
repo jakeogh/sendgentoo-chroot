@@ -67,10 +67,47 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
+
+def emerge_force(packages):
+    _env = os.environ.copy()
+    _env["CONFIG_PROTECT"] = "-*"
+
+    emerge_command = sh.emerge.bake(
+        "--with-bdeps=y",
+        "--quiet",
+        "-v",
+        "--tree",
+        "--usepkg=n",
+        "--ask",
+        "n",
+        "--autounmask",
+        "--autounmask-write",
+    )
+
+    for package in packages:
+        print("emerge_force() package:", package, file=sys.stderr)
+        emerge_command = emerge_command.bake(package)
+        print("emerge_command:", emerge_command, file=sys.stderr)
+
+    emerge_command(
+        "-p",
+        _ok_code=[0, 1],
+        _env=_env,
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )
+    emerge_command(
+        "--autounmask-continue",
+        _env=_env,
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )
+
+
 if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
-    with open("/root/.tmux.conf", "a", encoding="utf8") as fh:
-        fh.write("\nset-option remain-on-exit on\n")
+    # with open("/root/.tmux.conf", "a", encoding="utf8") as fh:
+    #    fh.write("\nset-option remain-on-exit on\n")
 
     syscmd("emerge app-misc/tmux -u")
     script_name = os.path.basename(__file__)
@@ -80,6 +117,8 @@ if not os.environ.get("TMUX"):
     )
     # Launch new tmux session running this script
     # subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
+    sh.tmux("-L", "new-session", "start-server")
+    sh.tmux("-L", "new-session", "set-option", "-g", "remain-on-exit", "failed")
     cmd = ["tmux", "new-session", "-s", "myscript", "python3", script_path] + sys.argv[
         1:
     ]
@@ -154,42 +193,6 @@ def enable_repository(repo: str):
 # enable_repository(repo='guru') # types-requests
 enable_repository(repo="pentoo")  # fchroot
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
-
-
-def emerge_force(packages):
-    _env = os.environ.copy()
-    _env["CONFIG_PROTECT"] = "-*"
-
-    emerge_command = sh.emerge.bake(
-        "--with-bdeps=y",
-        "--quiet",
-        "-v",
-        "--tree",
-        "--usepkg=n",
-        "--ask",
-        "n",
-        "--autounmask",
-        "--autounmask-write",
-    )
-
-    for package in packages:
-        print("emerge_force() package:", package, file=sys.stderr)
-        emerge_command = emerge_command.bake(package)
-        print("emerge_command:", emerge_command, file=sys.stderr)
-
-    emerge_command(
-        "-p",
-        _ok_code=[0, 1],
-        _env=_env,
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
-    emerge_command(
-        "--autounmask-continue",
-        _env=_env,
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
 
 
 # emerge_force(["sendgentoo-post-chroot"])
