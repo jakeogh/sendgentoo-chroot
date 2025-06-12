@@ -64,6 +64,9 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
+syscmd("emerge dev-python/sh -1")
+import sh
+
 
 def emerge_force(packages):
     _env = os.environ.copy()
@@ -100,9 +103,6 @@ def emerge_force(packages):
         _err=sys.stderr,
     )
 
-
-emerge_force(["dev-python/sh"])
-import sh
 
 if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
@@ -158,11 +158,8 @@ syscmd("emerge --quiet dev-vcs/git -1 -u")
 syscmd("emerge --sync")
 # needed below!
 syscmd(
-    "emerge --quiet sys-apps/portage dev-python/click app-eselect/eselect-repository dev-python/sh -1 -u"
+    "emerge --quiet sys-apps/portage dev-python/click app-eselect/eselect-repository -1 -u"
 )
-syscmd("emerge dev-python/sh -1")
-
-import sh
 
 os.makedirs("/etc/portage/repos.conf", exist_ok=True)
 if "jakeogh" not in sh.eselect("repository", "list", "-i"):
