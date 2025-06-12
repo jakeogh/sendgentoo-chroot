@@ -32,8 +32,6 @@ from signal import SIG_DFL
 from signal import SIGPIPE
 from signal import signal
 
-import sh
-
 logging.basicConfig(level=logging.INFO)
 signal(SIGPIPE, SIG_DFL)
 
@@ -102,6 +100,9 @@ def emerge_force(packages):
         _err=sys.stderr,
     )
 
+
+emerge_force(["dev-python/sh"])
+import sh
 
 if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
