@@ -215,11 +215,15 @@ emerge_force(["dev-python/smarttool"])  # /etc/local.d/all_block_devices_passed.
 emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 
 # todo, move this to post_reboot, and make some kind of global /.native check
-emerge_force(["portage-set-cflags-on-boot"])
-os.system("/home/sysskel/etc/local.d/portage_set_cflags.start")
+emerge_force(["portage-set-compile-flags-on-boot"])
 
-emerge_force(["portage-set-cpu-flags-on-boot"])
-os.system("/home/sysskel/etc/local.d/portage_set_cpu_flags.start")
+# emerge_force(["portage-set-cflags-on-boot"])
+# not until reboot
+# os.system("/home/sysskel/etc/local.d/portage_set_cflags.start")
+
+# emerge_force(["portage-set-cpu-flags-on-boot"])
+# not until reboot
+# os.system("/home/sysskel/etc/local.d/portage_set_cpu_flags.start")
 
 emerge_force(["portage-set-emerge-default-opts-on-boot"])
 os.system("/home/sysskel/etc/local.d/portage_set_emerge_default_opts.start")
