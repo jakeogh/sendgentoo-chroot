@@ -205,7 +205,6 @@ enable_repository(
 )  # dev-python/convertdate and its dep dev-python/pymeeus to make dev-python/dateparser-9999::jakeogh happy, which portagetool below depends on
 
 
-# emerge_force(["sendgentoo-post-chroot"])
 emerge_force(["dev-python/portagetool"])
 emerge_force(["dev-python/asserttool"])
 emerge_force(["dev-python/boottool"])
