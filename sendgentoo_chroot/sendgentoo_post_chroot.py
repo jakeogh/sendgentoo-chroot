@@ -653,6 +653,7 @@ def cli(
             "app-portage/smart-live-rebuild",
             "net-print/cups",
             "net-print/cups-meta",
+            "sys-apps/ethtool",
         ],
         force=True,
         upgrade_only=True,
