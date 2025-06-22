@@ -651,6 +651,7 @@ def cli(
             "sys-apps/moreutils",
             "app-misc/screen",
             "app-portage/smart-live-rebuild",
+            "net-print/cups",
             "net-print/cups-meta",
         ],
         force=True,
