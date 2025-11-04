@@ -1,26 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
-# pylint: disable=useless-suppression             # [I0021]
-# pylint: disable=missing-docstring               # [C0111] docstrings are always outdated and wrong
-# pylint: disable=missing-param-doc               # [W9015]
-# pylint: disable=missing-module-docstring        # [C0114]
-# pylint: disable=fixme                           # [W0511] todo encouraged
-# pylint: disable=line-too-long                   # [C0301]
-# pylint: disable=too-many-instance-attributes    # [R0902]
-# pylint: disable=too-many-lines                  # [C0302] too many lines in module
-# pylint: disable=invalid-name                    # [C0103] single letter var names, name too descriptive
-# pylint: disable=too-many-return-statements      # [R0911]
-# pylint: disable=too-many-branches               # [R0912]
-# pylint: disable=too-many-statements             # [R0915]
-# pylint: disable=too-many-arguments              # [R0913]
-# pylint: disable=too-many-nested-blocks          # [R1702]
-# pylint: disable=too-many-locals                 # [R0914]
-# pylint: disable=too-many-public-methods         # [R0904]
-# pylint: disable=too-few-public-methods          # [R0903]
-# pylint: disable=no-member                       # [E1101] no member for base
-# pylint: disable=attribute-defined-outside-init  # [W0201]
-# pylint: disable=too-many-boolean-expressions    # [R0916] in if statement
 
 from __future__ import annotations
 
@@ -118,10 +98,24 @@ if not os.environ.get("TMUX"):
     # Launch new tmux session running this script
     # subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
     # sh.tmux("-L", "sendgentoo", "start-server")
-    sh.tmux("-L", "sendgentoo", "new-session", "-d", "-s", "bootstrap")
+    sh.tmux(
+        "-L",
+        "sendgentoo",
+        "new-session",
+        "-d",
+        "-s",
+        "bootstrap",
+    )
     time.sleep(3)
     os.system("ls -al /tmp/tmux-0/")
-    sh.tmux("-L", "sendgentoo", "set-option", "-g", "remain-on-exit", "failed")
+    sh.tmux(
+        "-L",
+        "sendgentoo",
+        "set-option",
+        "-g",
+        "remain-on-exit",
+        "failed",
+    )
     cmd = [
         "tmux",
         "-L",
@@ -182,7 +176,13 @@ if "jakeogh" not in sh.eselect("repository", "list", "-i"):
         _out=sys.stdout,
         _err=sys.stderr,
     )  # ignores http_proxy
-sh.emaint("sync", "-r", "jakeogh", _out=sys.stdout, _err=sys.stderr)  # this needs git
+sh.emaint(
+    "sync",
+    "-r",
+    "jakeogh",
+    _out=sys.stdout,
+    _err=sys.stderr,
+)  # this needs git
 
 
 def enable_repository(repo: str):
@@ -194,7 +194,13 @@ def enable_repository(repo: str):
             _out=sys.stdout,
             _err=sys.stderr,
         )  # ignores http_proxy
-    sh.emaint("sync", "-r", repo, _out=sys.stdout, _err=sys.stderr)  # this needs git
+    sh.emaint(
+        "sync",
+        "-r",
+        repo,
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )  # this needs git
 
 
 # enable_repository(repo='guru') # types-requests
@@ -258,7 +264,10 @@ from portagetool import install_packages
 )
 @click.option("--boot-device", is_flag=False, required=True)
 @click.option(
-    "--march", is_flag=False, required=True, type=click.Choice(["native", "nocona"])
+    "--march",
+    is_flag=False,
+    required=True,
+    type=click.Choice(["native", "nocona"]),
 )
 @click.option("--newpasswd", is_flag=False, required=True)
 @click.option("--pinebook-overlay", is_flag=True, required=False)
@@ -318,10 +327,18 @@ def cli(
             "repository", "list", "-i"
         ):  # for fchroot (next time)
             sh.eselect(
-                "repository", "enable", "musl", _out=sys.stdout, _err=sys.stderr
+                "repository",
+                "enable",
+                "musl",
+                _out=sys.stdout,
+                _err=sys.stderr,
             )  # ignores http_proxy
         sh.emaint(
-            "sync", "-r", "musl", _out=sys.stdout, _err=sys.stderr
+            "sync",
+            "-r",
+            "musl",
+            _out=sys.stdout,
+            _err=sys.stderr,
         )  # this needs git
 
     # otherwise gcc compiles twice
@@ -343,11 +360,19 @@ def cli(
     )
     sh.date(_out=sys.stdout, _err=sys.stderr)
     sh.netdate(
-        "time.nist.gov", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
+        "time.nist.gov",
+        _out=sys.stdout,
+        _err=sys.stderr,
+        _ok_code=[0, 1],
     )  # todo, figure out NTP over proxy
     sh.date(_out=sys.stdout, _err=sys.stderr)
 
-    sh.emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
+    sh.emerge(
+        "-uvNDq",
+        "@world",
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )
 
     # zfs_module_mode = "module"
     # env-update || exit 1
@@ -360,7 +385,12 @@ def cli(
     if Path("/home/sysskel/etc/local.d/").exists():
         sh.chmod("+x", "-R", "/home/sysskel/etc/local.d/")
     # sh.eselect('python', 'list')  # depreciated
-    sh.eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
+    sh.eselect(
+        "profile",
+        "list",
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )
     write_line_to_file(
         path=Path("/etc") / Path("locale.gen"),
         line="en_US.UTF-8 UTF-8\n",
@@ -571,7 +601,12 @@ def cli(
     )
 
     sh.rc_update(
-        "add", "zfs-mount", "boot", _out=sys.stdout, _err=sys.stderr, _ok_code=[0, 1]
+        "add",
+        "zfs-mount",
+        "boot",
+        _out=sys.stdout,
+        _err=sys.stderr,
+        _ok_code=[0, 1],
     )  # dont exit if this fails
 
     gurantee_symlink(
@@ -579,7 +614,13 @@ def cli(
         target=Path("/etc/init.d/net.lo"),
         link_name=Path("/etc/init.d/net.eth0"),
     )
-    sh.rc_update("add", "net.eth0", "default", _out=sys.stdout, _err=sys.stderr)
+    sh.rc_update(
+        "add",
+        "net.eth0",
+        "default",
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )
 
     install_packages(
         ["gpm"],
@@ -587,7 +628,11 @@ def cli(
         upgrade_only=True,
     )
     sh.rc_update(
-        "add", "gpm", "default", _out=sys.stdout, _err=sys.stderr
+        "add",
+        "gpm",
+        "default",
+        _out=sys.stdout,
+        _err=sys.stderr,
     )  # console mouse support
 
     # install_packages('elogind')
@@ -599,7 +644,11 @@ def cli(
         upgrade_only=True,
     )
     sh.rc_update(
-        "add", "sysklogd", "default", _out=sys.stdout, _err=sys.stderr
+        "add",
+        "sysklogd",
+        "default",
+        _out=sys.stdout,
+        _err=sys.stderr,
     )  # syslog-ng hangs on boot... bloated
 
     os.makedirs("/etc/portage/package.mask", exist_ok=True)
@@ -654,6 +703,7 @@ def cli(
             "net-print/cups",
             "net-print/cups-meta",
             "sys-apps/ethtool",
+            "sys-fs/dosfstools",
         ],
         force=True,
         upgrade_only=True,

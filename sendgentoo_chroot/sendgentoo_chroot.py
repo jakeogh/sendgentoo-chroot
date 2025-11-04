@@ -1,27 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
-# pylint: disable=useless-suppression             # [I0021]
-# pylint: disable=missing-docstring               # [C0111] docstrings are always outdated and wrong
-# pylint: disable=missing-param-doc               # [W9015]
-# pylint: disable=missing-module-docstring        # [C0114]
-# pylint: disable=fixme                           # [W0511] todo encouraged
-# pylint: disable=line-too-long                   # [C0301]
-# pylint: disable=too-many-instance-attributes    # [R0902]
-# pylint: disable=too-many-lines                  # [C0302] too many lines in module
-# pylint: disable=invalid-name                    # [C0103] single letter var names, name too descriptive(!)
-# pylint: disable=too-many-return-statements      # [R0911]
-# pylint: disable=too-many-branches               # [R0912]
-# pylint: disable=too-many-statements             # [R0915]
-# pylint: disable=too-many-arguments              # [R0913]
-# pylint: disable=too-many-nested-blocks          # [R1702]
-# pylint: disable=too-many-locals                 # [R0914]
-# pylint: disable=too-many-public-methods         # [R0904]
-# pylint: disable=too-few-public-methods          # [R0903]
-# pylint: disable=no-member                       # [E1101] no member for base
-# pylint: disable=attribute-defined-outside-init  # [W0201]
-# pylint: disable=too-many-boolean-expressions    # [R0916] in if statement
-
 from __future__ import annotations
 
 import os
@@ -196,7 +175,10 @@ def rsync_cfg(
 @cli.command()
 @click.argument("mount_path")
 @click.option(
-    "--stdlib", required=False, type=click.Choice(["glibc", "musl"]), default="glibc"
+    "--stdlib",
+    required=False,
+    type=click.Choice(["glibc", "musl"]),
+    default="glibc",
 )
 @click.option("--boot-device", type=str, required=True)
 @click.option("--hostname", type=str, required=True)
@@ -419,7 +401,12 @@ def chroot_gentoo(
         kernel=kernel,
     )
     chroot_command.append(c_cmd)
-    run_command(" ".join(chroot_command), verbose=True, ask=False, system=True)
+    run_command(
+        " ".join(chroot_command),
+        verbose=True,
+        ask=False,
+        system=True,
+    )
     ic("chroot_gentoo.py complete!")
 
 
@@ -498,4 +485,9 @@ def chroot_gentoo_existing(
         "su",
         "--login",
     ]
-    run_command(" ".join(chroot_command), verbose=True, ask=False, system=True)
+    run_command(
+        " ".join(chroot_command),
+        verbose=True,
+        ask=False,
+        system=True,
+    )
