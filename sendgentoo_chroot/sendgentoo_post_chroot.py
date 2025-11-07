@@ -204,7 +204,9 @@ def enable_repository(repo: str):
 
 
 # enable_repository(repo='guru') # types-requests
-enable_repository(repo="pentoo")  # fchroot
+
+# enable_repository(repo="pentoo")  # fchroot
+
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
 enable_repository(
     repo="slonko"
