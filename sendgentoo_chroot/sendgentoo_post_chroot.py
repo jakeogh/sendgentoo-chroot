@@ -26,7 +26,6 @@ def syscmd(cmd):
     os.system(cmd)
 
 
-import signal
 import time
 import traceback
 
