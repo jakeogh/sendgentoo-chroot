@@ -72,7 +72,12 @@ if not os.environ.get("TMUX"):
 
 print("Running inside tmux!")
 print("Arguments received:", sys.argv[1:])
-print("os.environ['TMUX']:", os.environ["TMUX"])
+
+try:
+    print("os.environ['TMUX']:", os.environ["TMUX"])
+except KeyError:
+    print("start tmux!", file=sys.stderr)
+    sys.exit(1)
 
 run("eselect", "news", "read", "all")
 
