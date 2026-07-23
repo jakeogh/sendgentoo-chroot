@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
-
-from __future__ import annotations
 
 import os
+import shlex
 import sys
 from importlib import resources
 from pathlib import Path
@@ -12,63 +10,61 @@ from signal import SIGPIPE
 from signal import signal
 
 import click
-import sh
+import hs
+from asserttool import am_root
 from asserttool import ic
 from asserttool import icp
-from asserttool import root_user
 from boottool import make_hybrid_mbr
 from click_auto_help import AHGroup
 from clicktool import click_add_options
 from clicktool import click_global_options
 from clicktool import tvicgvd
 from clicktool.mesa import click_mesa_options
+from filetool import append_line_to_file
 from globalverbose import gvd
 from mounttool import mount_something
 from mounttool import path_is_mounted
-from pathtool import write_line_to_file
-from run_command import run_command
-from with_chdir import chdir
 
 signal(SIGPIPE, SIG_DFL)
 
+_cp = hs.Command("cp")
 
-def mount_for_chroot(*, ctx, mount_path: Path):
+
+def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
     mount_something(
-        mountpoint=mount_path / Path("proc"),
+        mountpoint=mount_path / "proc",
         mount_type="proc",
         source=None,
         slave=False,
     )
     mount_something(
-        mountpoint=mount_path / Path("sys"),
+        mountpoint=mount_path / "sys",
         mount_type="rbind",
         slave=True,
         source=Path("/sys"),
     )
     mount_something(
-        mountpoint=mount_path / Path("dev"),
+        mountpoint=mount_path / "dev",
         mount_type="rbind",
         slave=True,
         source=Path("/dev"),
     )
     mount_something(
-        mountpoint=mount_path / Path("run"),
+        mountpoint=mount_path / "run",
         mount_type="bind",
         slave=True,
         source=Path("/run"),
     )
 
-    os.makedirs(mount_path / Path("home") / Path("cfg"), exist_ok=True)
+    os.makedirs(mount_path / "home" / "cfg", exist_ok=True)
+    os.makedirs(mount_path / "usr" / "local" / "portage", exist_ok=True)
 
-    os.makedirs(
-        mount_path / Path("usr") / Path("local") / Path("portage"), exist_ok=True
-    )
+    # make sure /var/tmp/portage exists on the host
+    hs.Command("emerge")("eprint", _out=sys.stdout, _err=sys.stderr)
 
-    os.system("emerge eprint")  # make sure /var/tmp/portage exists
-
-    _var_tmp_portage = mount_path / Path("var") / Path("tmp") / Path("portage")
+    _var_tmp_portage = mount_path / "var" / "tmp" / "portage"
     os.makedirs(_var_tmp_portage, exist_ok=True)
-    sh.chown("portage:portage", _var_tmp_portage)
+    hs.Command("chown")("portage:portage", _var_tmp_portage.as_posix())
 
     mount_something(
         mountpoint=_var_tmp_portage,
@@ -76,11 +72,8 @@ def mount_for_chroot(*, ctx, mount_path: Path):
         slave=False,
         source=Path("/var/tmp/portage"),
     )
-    del _var_tmp_portage
 
-    _gentoo_repo = (
-        mount_path / Path("var") / Path("db") / Path("repos") / Path("gentoo")
-    )
+    _gentoo_repo = mount_path / "var" / "db" / "repos" / "gentoo"
     _gentoo_repo.mkdir(exist_ok=True)
     mount_something(
         mountpoint=_gentoo_repo,
@@ -88,7 +81,6 @@ def mount_for_chroot(*, ctx, mount_path: Path):
         slave=False,
         source=Path("/var/db/repos/gentoo"),
     )
-    del _gentoo_repo
 
     ctx.invoke(
         rsync_cfg,
@@ -100,11 +92,11 @@ def mount_for_chroot(*, ctx, mount_path: Path):
 @click_add_options(click_global_options)
 @click.pass_context
 def cli(
-    ctx,
+    ctx: click.Context,
     verbose_inf: bool,
     dict_output: bool,
     verbose: bool = False,
-):
+) -> None:
     tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
@@ -115,16 +107,25 @@ def cli(
 
 
 @cli.command()
-@click.argument("mount_path")
+@click.argument(
+    "mount_path",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        file_okay=False,
+        allow_dash=False,
+        path_type=Path,
+    ),
+)
 @click_add_options(click_global_options)
 @click.pass_context
 def rsync_cfg(
-    ctx,
-    mount_path: str,
+    ctx: click.Context,
+    mount_path: Path,
     verbose_inf: bool,
     dict_output: bool,
     verbose: bool = False,
-):
+) -> None:
     tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
@@ -133,54 +134,64 @@ def rsync_cfg(
         gvd=gvd,
     )
 
-    if not root_user():
-        ic("You must be root.")
-        sys.exit(1)
+    am_root()
 
-    with chdir(
-        "/home/",
-    ):
-        rsync_command = [
-            "rsync",
-            '--exclude="_priv"',
-            '--exclude="_myapps/gentoo"',
-            '--exclude="virt/iso"',
-            "--one-file-system",
-            "--delete",
-            "--perms",
-            "--executability",
-            "--human-readable",
-            "--recursive",
-            "--links",
-            "--times",
-            f'/home/cfg "{mount_path}/home/"',
-        ]
-        run_command(
-            " ".join(rsync_command),
-            system=True,
-            ask=False,
-            verbose=True,
+    hs.Command("rsync")(
+        "--exclude=_priv",
+        "--exclude=_myapps/gentoo",
+        "--exclude=virt/iso",
+        "--one-file-system",
+        "--delete",
+        "--perms",
+        "--executability",
+        "--human-readable",
+        "--recursive",
+        "--links",
+        "--times",
+        "/home/cfg",
+        f"{mount_path.as_posix()}/home/",
+        _out=sys.stdout,
+        _err=sys.stderr,
+    )
+
+    with resources.as_file(resources.files("sendgentoo_chroot")) as _pkg_dir:
+        _post_chroot_script = _pkg_dir / "sendgentoo_post_chroot.py"
+        icp(_post_chroot_script)
+        _cp(_post_chroot_script.as_posix(), (mount_path / "tmp").as_posix())
+        hs.Command("chmod")(
+            "+x", (mount_path / "tmp" / "sendgentoo_post_chroot.py").as_posix()
         )
-
-    with resources.path(
-        "sendgentoo_chroot", "sendgentoo_post_chroot.py"
-    ) as _sendgentoo_post_chroot:
-        icp(_sendgentoo_post_chroot)
-
-        sh.cp(_sendgentoo_post_chroot, "/mnt/gentoo/tmp")
-        sh.chmod("+x", "/mnt/gentoo/tmp/sendgentoo_post_chroot.py")
-        sh.cp("/etc/resolv.conf", "/mnt/gentoo/etc")
+        _cp("/etc/resolv.conf", (mount_path / "etc").as_posix())
 
 
 @cli.command()
-@click.argument("mount_path")
+@click.argument(
+    "mount_path",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        file_okay=False,
+        allow_dash=False,
+        path_type=Path,
+    ),
+)
 @click.option(
     "--stdlib",
     required=False,
     type=click.Choice(["glibc", "musl"]),
     default="glibc",
 )
-@click.option("--boot-device", type=str, required=True)
+@click.option(
+    "--boot-device",
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        allow_dash=False,
+        path_type=Path,
+    ),
+    required=True,
+)
 @click.option("--hostname", type=str, required=True)
 @click.option("--march", required=True, type=click.Choice(["native", "nocona"]))
 @click.option(
@@ -215,7 +226,7 @@ def rsync_cfg(
 @click.option("--skip-to-rsync", is_flag=True)
 @click.option("--ip", type=str, required=True)
 @click.option("--ip-gateway", type=str, required=True)
-@click.option("--pinebook-overlay", type=str, required=False)
+@click.option("--pinebook-overlay", is_flag=True)
 @click.option("--vm", required=False, type=click.Choice(["qemu"]))
 @click.option("--ipython", is_flag=True)
 @click.option("--configure-kernel", is_flag=True)
@@ -230,10 +241,10 @@ def rsync_cfg(
 @click_add_options(click_global_options)
 @click.pass_context
 def chroot_gentoo(
-    ctx,
-    mount_path: str,
+    ctx: click.Context,
+    mount_path: Path,
     stdlib: str,
-    boot_device: str,
+    boot_device: Path,
     hostname: str,
     march: str,
     arch: str,
@@ -241,7 +252,7 @@ def chroot_gentoo(
     newpasswd: str,
     ip: str,
     ip_gateway: str,
-    vm: str,
+    vm: None | str,
     skip_to_rsync: bool,
     mesa_use_enable: list[str],
     mesa_use_disable: list[str],
@@ -252,7 +263,7 @@ def chroot_gentoo(
     dict_output: bool,
     ipython: bool,
     verbose: bool = False,
-):
+) -> None:
     tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
@@ -262,12 +273,10 @@ def chroot_gentoo(
     )
 
     mount_path = Path(mount_path)
-    assert path_is_mounted(
-        mount_path,
-    )
+    assert path_is_mounted(mount_path)
 
     if not skip_to_rsync:
-        ic("making hbrid mbr")
+        ic("making hybrid mbr")
         ctx.invoke(
             make_hybrid_mbr,
             boot_device=boot_device,
@@ -276,80 +285,63 @@ def chroot_gentoo(
             dict_output=dict_output,
         )
 
-        # if [[ "${vm}" == "qemu" ]];
-        # then
-        #    mount --bind "${destination}"{,-chroot} || { echo "${destination} ${destination}-chroot" ; exit 1 ; }
-        # fi
-
-        write_line_to_file(
-            path=mount_path / Path("etc") / Path("conf.d") / Path("net"),
-            line=f'config_eth0="{ip}/24"\n',
+        append_line_to_file(
+            path=mount_path / "etc" / "conf.d" / "net",
+            line=f'config_eth0="{ip}/24"',
             unique=True,
         )
-
-        write_line_to_file(
-            path=mount_path / Path("etc") / Path("conf.d") / Path("net"),
-            line=f'routes_eth0="default via {ip_gateway}"\n',
+        append_line_to_file(
+            path=mount_path / "etc" / "conf.d" / "net",
+            line=f'routes_eth0="default via {ip_gateway}"',
             unique=True,
         )
-
-        write_line_to_file(
-            path=mount_path / Path("etc") / Path("conf.d") / Path("hostname"),
-            line=f'hostname="{hostname}"\n',
+        append_line_to_file(
+            path=mount_path / "etc" / "conf.d" / "hostname",
+            line=f'hostname="{hostname}"',
             unique=True,
         )
 
     mount_for_chroot(ctx=ctx, mount_path=mount_path)
 
     if Path("/etc/portage/proxy.conf").exists():
-        sh.cp(
+        _cp(
             "/etc/portage/proxy.conf",
-            mount_path / Path("etc") / Path("portage") / Path("proxy.conf"),
+            (mount_path / "etc" / "portage" / "proxy.conf").as_posix(),
         )
-
-        write_line_to_file(
-            path=mount_path / Path("etc") / Path("portage") / Path("make.conf"),
-            line="source /etc/portage/proxy.conf\n",
+        append_line_to_file(
+            path=mount_path / "etc" / "portage" / "make.conf",
+            line="source /etc/portage/proxy.conf",
             unique=True,
         )
+        hs.Command("/etc/init.d/tinyproxy")("start", _out=sys.stdout, _err=sys.stderr)
 
-    sh.cp(
+    _cp(
         "-ar",
         "/home/sysskel/etc/portage/patches",
-        mount_path / Path("etc") / Path("portage"),
+        (mount_path / "etc" / "portage").as_posix(),
     )
 
-    write_line_to_file(
-        path=mount_path / Path("etc") / Path("hosts"),
-        line=f"127.0.0.1\tlocalhost\t{hostname}\n",
+    append_line_to_file(
+        path=mount_path / "etc" / "hosts",
+        line=f"127.0.0.1\tlocalhost\t{hostname}",
         unique=True,
     )
 
-    mesa_use = []
-    for flag in mesa_use_enable:
-        mesa_use.append(flag)
-    for flag in mesa_use_disable:
-        mesa_use.append("-" + flag)
-    mesa_use = " ".join(mesa_use)
-    mesa_use = "media-libs/mesa" + " " + mesa_use
-
-    write_line_to_file(
-        path=mount_path
-        / Path("etc")
-        / Path("portage")
-        / Path("package.use")
-        / Path("mesa"),
-        line=mesa_use + "\n",
+    mesa_use = " ".join(
+        [*mesa_use_enable, *("-" + flag for flag in mesa_use_disable)]
+    )
+    append_line_to_file(
+        path=mount_path / "etc" / "portage" / "package.use" / "mesa",
+        line=f"media-libs/mesa {mesa_use}",
         unique=True,
     )
 
-    os.system("/etc/init.d/tinyproxy start")
+    hs.Command("emerge")(
+        "app-misc/tmux", "--fetchonly", _out=sys.stdout, _err=sys.stderr
+    )
 
-    sh.emerge("app-misc/tmux", "--fetchonly")
-
-    sh.cp(
-        "/usr/bin/ischroot", mount_path / Path("usr") / Path("bin") / Path("ischroot")
-    )  # bug for cross compile
+    # cross-compile bug: chroot needs the host ischroot
+    _cp("/usr/bin/ischroot", (mount_path / "usr" / "bin" / "ischroot").as_posix())
 
     ic("Entering chroot")
 
@@ -357,61 +349,51 @@ def chroot_gentoo(
     if arch != "amd64":
         chroot_binary = "fchroot"
 
-    # old:
-    # chroot_command = [
-    #     "env",
-    #     "-i",
-    #     "HOME=/root",
-    #     "TERM=$TERM",
-    #     chroot_binary,
-    #     Path(mount_path).as_posix(),
-    #     "/bin/bash",
-    #     "-l",
-    #     "-c",
-    #     "su",
-    #     "--login",
-    #     "--command",
-    # ]
-    #
-    chroot_command = [
-        "env",
+    post_chroot_args = [
+        "/tmp/sendgentoo_post_chroot.py",
+        "--stdlib",
+        stdlib,
+        "--boot-device",
+        boot_device.as_posix(),
+        "--march",
+        march,
+        "--newpasswd",
+        newpasswd,
+        "--kernel",
+        kernel,
+    ]
+    if pinebook_overlay:
+        post_chroot_args.append("--pinebook-overlay")
+    if configure_kernel:
+        post_chroot_args.append("--configure-kernel")
+    c_cmd = " ".join(shlex.quote(_arg) for _arg in post_chroot_args)
+
+    hs.Command("env")(
         "-i",
         "HOME=/root",
-        "TERM=$TERM",
+        f"TERM={os.environ['TERM']}",
         chroot_binary,
-        Path(mount_path).as_posix(),
+        mount_path.as_posix(),
         "/bin/bash",
         "-l",
         "-c",
-    ]
-
-    # new:
-    # env -i HOME=/root TERM=$TERM chroot /mnt/gentoo /bin/bash -l -c "/tmp/sendgentoo_post_chroot.py --stdlib glibc --boot-device /dev/sda --march native --newpasswd neww0rld --kernel gentoo-sources ; /bin/bash -l"
-    # env -i HOME=/root TERM=$TERM chroot /mnt/gentoo /bin/bash -l -c "/tmp/sendgentoo_post_chroot.py --stdlib glibc --boot-device /dev/sda --march native --newpasswd neww0rld --kernel gentoo-sources ; /bin/bash -l"
-
-    # c_cmd = '-c "/home/cfg/_myapps/sendgentoo-post-chroot/sendgentoo_post_chroot/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --root-filesystem {root_filesystem} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel}"'
-    c_cmd = '"/tmp/sendgentoo_post_chroot.py --stdlib {stdlib} --boot-device {boot_device} --march {march} --newpasswd {newpasswd} {pinebook_overlay} --kernel {kernel} {configure_kernel}"'
-    c_cmd = c_cmd.format(
-        stdlib=stdlib,
-        boot_device=boot_device,
-        march=march,
-        newpasswd=newpasswd,
-        pinebook_overlay=("--pinebook-overlay" if pinebook_overlay else ""),
-        configure_kernel=("--configure-kernel" if configure_kernel else ""),
-        kernel=kernel,
+        c_cmd,
+        _fg=True,
     )
-    chroot_command.append(c_cmd)
-    run_command(
-        " ".join(chroot_command),
-        verbose=True,
-        ask=False,
-        system=True,
-    )
-    ic("chroot_gentoo.py complete!")
+    ic("chroot_gentoo complete!")
 
 
 @cli.command()
-@click.argument("mount_path")
+@click.argument(
+    "mount_path",
+    type=click.Path(
+        exists=True,
+        dir_okay=True,
+        file_okay=False,
+        allow_dash=False,
+        path_type=Path,
+    ),
+)
 @click.option(
     "--arch",
     is_flag=False,
@@ -434,7 +416,17 @@ def chroot_gentoo(
     ),
     default="amd64",
 )
-@click.option("--boot-device", type=str, required=True)
+@click.option(
+    "--boot-device",
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        allow_dash=False,
+        path_type=Path,
+    ),
+    required=True,
+)
 @click.option(
     "--root-filesystem",
     required=False,
@@ -444,15 +436,15 @@ def chroot_gentoo(
 @click_add_options(click_global_options)
 @click.pass_context
 def chroot_gentoo_existing(
-    ctx,
-    mount_path: str,
+    ctx: click.Context,
+    mount_path: Path,
     arch: str,
-    boot_device: str,
+    boot_device: Path,
     root_filesystem: str,
     verbose_inf: bool,
     dict_output: bool,
     verbose: bool = False,
-):
+) -> None:
     tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
@@ -472,22 +464,16 @@ def chroot_gentoo_existing(
     if arch != "amd64":
         chroot_binary = "fchroot"
 
-    chroot_command = [
-        "env",
+    hs.Command("env")(
         "-i",
         "HOME=/root",
-        "TERM=$TERM",
+        f"TERM={os.environ['TERM']}",
         chroot_binary,
-        Path(mount_path).as_posix(),
+        mount_path.as_posix(),
         "/bin/bash",
         "-l",
         "-c",
         "su",
         "--login",
-    ]
-    run_command(
-        " ".join(chroot_command),
-        verbose=True,
-        ask=False,
-        system=True,
+        _fg=True,
     )

@@ -1,57 +1,127 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# bootstrap script: runs inside a fresh stage3 chroot where only the stdlib
+# exists, so imports of emerged packages happen mid-file after their emerges
 
-
-from __future__ import annotations
-
-import logging
 import os
+import signal
 import subprocess
 import sys
-from signal import SIG_DFL
-from signal import SIGPIPE
-from signal import signal
-
-logging.basicConfig(level=logging.INFO)
-signal(SIGPIPE, SIG_DFL)
-
-
-if len(sys.argv) <= 2:
-    print(sys.argv[0], "arguments required")
-    sys.exit(1)
-
-
-def syscmd(cmd):
-    print(cmd, file=sys.stderr)
-    os.system(cmd)
-
-
 import time
 import traceback
 
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
-# Signal handler for SIGINT (Ctrl+C) and SIGTERM
-def signal_handler(sig, frame):
-    print(f"\nReceived signal {sig}. Pausing before exit...")
-    print("Stack trace:")
-    traceback.print_stack(frame)
-    time.sleep(5)  # Pause for 5 seconds
+if len(sys.argv) <= 2:
+    print(sys.argv[0], "arguments required", file=sys.stderr)
     sys.exit(1)
 
 
-# Register signal handlers
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
+def _signal_handler(sig, frame) -> None:
+    print(f"\nReceived signal {sig}. Pausing before exit...", file=sys.stderr)
+    traceback.print_stack(frame)
+    time.sleep(5)
+    sys.exit(1)
 
-syscmd("emerge dev-python/sh -1")
-import sh
+
+signal.signal(signal.SIGINT, _signal_handler)
+signal.signal(signal.SIGTERM, _signal_handler)
 
 
-def emerge_force(packages):
+def run(*cmd: str) -> None:
+    print(" ".join(cmd), file=sys.stderr)
+    subprocess.run(cmd, check=True)
+
+
+def run_capture(*cmd: str) -> str:
+    print(" ".join(cmd), file=sys.stderr)
+    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+
+
+def proxy_conf_lines() -> list[str]:
+    lines = []
+    with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
+        for line in fh:
+            line = line.strip().replace('"', "").replace("#", "")
+            if line:
+                lines.append(line)
+    return lines
+
+
+if not os.environ.get("TMUX"):
+    print("Not running in tmux. Installing tmux...")
+    run("emerge", "app-misc/tmux", "-u")
+    script_path = os.path.realpath(__file__)
+    print(f"Launching new tmux session... {script_path=} {sys.argv[1:]}")
+    run("tmux", "-L", "sendgentoo", "new-session", "-d", "-s", "bootstrap")
+    time.sleep(3)
+    subprocess.run(["ls", "-al", "/tmp/tmux-0/"], check=False)  # diagnostic
+    run("tmux", "-L", "sendgentoo", "set-option", "-g", "remain-on-exit", "failed")
+    cmd = [
+        "tmux",
+        "-L",
+        "sendgentoo",
+        "new-session",
+        "-s",
+        "myscript",
+        "python3",
+        script_path,
+    ] + sys.argv[1:]
+    print(f"{cmd=}")
+    subprocess.run(cmd, check=True)
+    sys.exit(0)
+
+print("Running inside tmux!")
+print("Arguments received:", sys.argv[1:])
+print("os.environ['TMUX']:", os.environ["TMUX"])
+
+run("eselect", "news", "read", "all")
+
+if os.path.exists("/etc/portage/proxy.conf"):
+    for _line in proxy_conf_lines():
+        key, value = _line.split("=", maxsplit=1)
+        os.environ[key] = value
+
+run("emerge", "--quiet", "dev-vcs/git", "-1", "-u")
+run("emerge", "--sync")
+run(
+    "emerge",
+    "--quiet",
+    "sys-apps/portage",
+    "dev-python/click",
+    "app-eselect/eselect-repository",
+    "-1",
+    "-u",
+)
+
+os.makedirs("/etc/portage/repos.conf", exist_ok=True)
+if "jakeogh" not in run_capture("eselect", "repository", "list", "-i"):
+    # ignores http_proxy
+    run(
+        "eselect",
+        "repository",
+        "add",
+        "jakeogh",
+        "git",
+        "https://github.com/jakeogh/jakeogh",
+    )
+run("emaint", "sync", "-r", "jakeogh")  # needs git
+
+# hs comes from the jakeogh overlay, so this cannot happen any earlier
+run("emerge", "--quiet", "dev-python/hs", "-1", "-u")
+import hs  # noqa: E402
+
+_emerge = hs.Command("emerge")
+_eselect = hs.Command("eselect")
+_emaint = hs.Command("emaint")
+_rc_update = hs.Command("rc-update")
+
+
+def emerge_force(packages: list[str]) -> None:
     _env = os.environ.copy()
     _env["CONFIG_PROTECT"] = "-*"
 
-    emerge_command = sh.emerge.bake(
+    emerge_command = hs.Command("emerge")
+    emerge_command.bake(
         "--with-bdeps=y",
         "--quiet",
         "-v",
@@ -65,7 +135,7 @@ def emerge_force(packages):
 
     for package in packages:
         print("emerge_force() package:", package, file=sys.stderr)
-        emerge_command = emerge_command.bake(package)
+        emerge_command.bake(package)
         print("emerge_command:", emerge_command, file=sys.stderr)
 
     emerge_command(
@@ -83,136 +153,21 @@ def emerge_force(packages):
     )
 
 
-if not os.environ.get("TMUX"):
-    print("Not running in tmux. Installing tmux...")
-    # with open("/root/.tmux.conf", "a", encoding="utf8") as fh:
-    #    fh.write("\nset-option remain-on-exit on\n")
+def enable_repository(repo: str) -> None:
+    if repo not in str(_eselect("repository", "list", "-i")):
+        # ignores http_proxy
+        _eselect("repository", "enable", repo, _out=sys.stdout, _err=sys.stderr)
+    _emaint("sync", "-r", repo, _out=sys.stdout, _err=sys.stderr)  # needs git
 
-    syscmd("emerge app-misc/tmux -u")
-    script_name = os.path.basename(__file__)
-    script_path = os.path.realpath(__file__)
-    print(
-        f"Not running in tmux. Launching new tmux session...{script_path=} {sys.argv[1:]}"
-    )
-    # Launch new tmux session running this script
-    # subprocess.run(['tmux', 'new-session', '-s', script_name, 'python3', script_name])
-    # sh.tmux("-L", "sendgentoo", "start-server")
-    sh.tmux(
-        "-L",
-        "sendgentoo",
-        "new-session",
-        "-d",
-        "-s",
-        "bootstrap",
-    )
-    time.sleep(3)
-    os.system("ls -al /tmp/tmux-0/")
-    sh.tmux(
-        "-L",
-        "sendgentoo",
-        "set-option",
-        "-g",
-        "remain-on-exit",
-        "failed",
-    )
-    cmd = [
-        "tmux",
-        "-L",
-        "sendgentoo",
-        "new-session",
-        "-s",
-        "myscript",
-        "python3",
-        script_path,
-    ] + sys.argv[1:]
-    # cmd.extend(["; /bin/bash -l"])
-    print(f"{cmd=}")
-    print(f"{' '.join(cmd)=}")
-    subprocess.run(cmd)
-    sys.exit(0)
-
-print("Running inside tmux!")
-print("Arguments received:", sys.argv[1:])
-
-try:
-    print("os.environ['TMUX']:", os.environ["TMUX"])
-except KeyError:
-    print("start tmux!", file=sys.stderr)
-    sys.exit(1)
-
-
-syscmd("eselect news read all")
-
-try:
-    with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
-        for line in fh:
-            line = line.strip()
-            line = "".join(line.split('"'))
-            line = "".join(line.split("#"))
-            if line:
-                # icp(line)
-                key = line.split("=")[0]
-                value = line.split("=")[1]
-                os.environ[key] = value
-except FileNotFoundError:
-    pass
-
-syscmd("emerge --quiet dev-vcs/git -1 -u")
-syscmd("emerge --sync")
-# needed below!
-syscmd(
-    "emerge --quiet sys-apps/portage dev-python/click app-eselect/eselect-repository -1 -u"
-)
-
-os.makedirs("/etc/portage/repos.conf", exist_ok=True)
-if "jakeogh" not in sh.eselect("repository", "list", "-i"):
-    sh.eselect(
-        "repository",
-        "add",
-        "jakeogh",
-        "git",
-        "https://github.com/jakeogh/jakeogh",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )  # ignores http_proxy
-sh.emaint(
-    "sync",
-    "-r",
-    "jakeogh",
-    _out=sys.stdout,
-    _err=sys.stderr,
-)  # this needs git
-
-
-def enable_repository(repo: str):
-    if repo not in sh.eselect("repository", "list", "-i"):  # for fchroot (next time)
-        sh.eselect(
-            "repository",
-            "enable",
-            repo,
-            _out=sys.stdout,
-            _err=sys.stderr,
-        )  # ignores http_proxy
-    sh.emaint(
-        "sync",
-        "-r",
-        repo,
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )  # this needs git
-
-
-# enable_repository(repo='guru') # types-requests
-# enable_repository(repo="pentoo")  # fchroot
 
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
-enable_repository(
-    repo="slonko"
-)  # dev-python/convertdate and its dep dev-python/pymeeus to make dev-python/dateparser-9999::jakeogh happy, which portagetool below depends on
-
+# dev-python/convertdate and its dep dev-python/pymeeus to make
+# dev-python/dateparser-9999::jakeogh happy, which portagetool depends on
+enable_repository(repo="slonko")
 
 emerge_force(["dev-python/portagetool"])
 emerge_force(["dev-python/asserttool"])
+emerge_force(["dev-python/filetool"])
 emerge_force(["dev-python/boottool"])
 emerge_force(["dev-python/compile-kernel"])
 emerge_force(["dev-python/icecream"])
@@ -222,37 +177,28 @@ emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 # todo, move this to post_reboot, and make some kind of global /.native check
 emerge_force(["portage-set-compile-flags-on-boot"])
 
-# emerge_force(["portage-set-cflags-on-boot"])
-# not until reboot
-# os.system("/home/sysskel/etc/local.d/portage_set_cflags.start")
-
-# emerge_force(["portage-set-cpu-flags-on-boot"])
-# not until reboot
-# os.system("/home/sysskel/etc/local.d/portage_set_cpu_flags.start")
-
 emerge_force(["portage-set-emerge-default-opts-on-boot"])
-os.system("/home/sysskel/etc/local.d/portage_set_emerge_default_opts.start")
+run("/home/sysskel/etc/local.d/portage_set_emerge_default_opts.start")
 
 emerge_force(["portage-set-makeopts-on-boot"])
-os.system("/home/sysskel/etc/local.d/portage_set_makeopts.start")
+run("/home/sysskel/etc/local.d/portage_set_makeopts.start")
 
 
-from pathlib import Path
+from pathlib import Path  # noqa: E402
 
-import click
-from asserttool import ic
-from asserttool import icp
-from boottool import install_grub
-from clicktool import click_add_options
-from clicktool import click_global_options
-from clicktool import tvicgvd
-from eprint import eprint
-from globalverbose import gvd
-from mounttool import path_is_mounted
-from pathtool import gurantee_symlink
-from pathtool import write_line_to_file
-from portagetool import add_accept_keyword
-from portagetool import install_packages
+import click  # noqa: E402
+from asserttool import ic  # noqa: E402
+from asserttool import icp  # noqa: E402
+from boottool import install_grub  # noqa: E402
+from clicktool import click_add_options  # noqa: E402
+from clicktool import click_global_options  # noqa: E402
+from clicktool import tvicgvd  # noqa: E402
+from eprint import eprint  # noqa: E402
+from filetool import append_line_to_file  # noqa: E402
+from globalverbose import gvd  # noqa: E402
+from mounttool import path_is_mounted  # noqa: E402
+from portagetool import add_accept_keyword  # noqa: E402
+from portagetool import install_packages  # noqa: E402
 
 
 @click.command()
@@ -260,9 +206,20 @@ from portagetool import install_packages
     "--stdlib",
     is_flag=False,
     required=False,
-    type=click.Choice(["glibc", "musl", "uclibc"]),
+    type=click.Choice(["glibc", "musl"]),
 )
-@click.option("--boot-device", is_flag=False, required=True)
+@click.option(
+    "--boot-device",
+    is_flag=False,
+    required=True,
+    type=click.Path(
+        exists=True,
+        dir_okay=False,
+        file_okay=True,
+        allow_dash=False,
+        path_type=Path,
+    ),
+)
 @click.option(
     "--march",
     is_flag=False,
@@ -282,7 +239,7 @@ from portagetool import install_packages
 @click_add_options(click_global_options)
 @click.pass_context
 def cli(
-    ctx,
+    ctx: click.Context,
     stdlib: str,
     boot_device: Path,
     march: str,
@@ -293,7 +250,7 @@ def cli(
     verbose_inf: bool,
     dict_output: bool,
     verbose: bool = False,
-):
+) -> None:
     tty, verbose = tvicgvd(
         ctx=ctx,
         verbose=verbose,
@@ -302,11 +259,6 @@ def cli(
         gvd=gvd,
     )
 
-    # musl: http://distfiles.gentoo.org/experimental/amd64/musl/HOWTO
-    # spark: https://github.com/holman/spark.git
-    # export https_proxy="http://192.168.222.100:8888"
-    # export http_proxy="http://192.168.222.100:8888"
-    # source /home/cfg/_myapps/sendgentoo/sendgentoo/utils.sh
     icp(
         stdlib,
         boot_device,
@@ -318,39 +270,21 @@ def cli(
 
     assert path_is_mounted(Path("/boot/efi"))
 
-    # sh.emerge('--sync', _out=sys.stdout, _err=sys.stderr)
-
     os.makedirs(Path("/var/db/repos/gentoo"), exist_ok=True)
 
     if stdlib == "musl":
-        if "musl" not in sh.eselect(
-            "repository", "list", "-i"
-        ):  # for fchroot (next time)
-            sh.eselect(
-                "repository",
-                "enable",
-                "musl",
-                _out=sys.stdout,
-                _err=sys.stderr,
-            )  # ignores http_proxy
-        sh.emaint(
-            "sync",
-            "-r",
-            "musl",
-            _out=sys.stdout,
-            _err=sys.stderr,
-        )  # this needs git
+        enable_repository(repo="musl")
 
     # otherwise gcc compiles twice
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("package.use") / Path("gcc"),
-        line="sys-devel/gcc fortran\n",
+    append_line_to_file(
+        path=Path("/etc/portage/package.use/gcc"),
+        line="sys-devel/gcc fortran",
         unique=True,
     )
 
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("package.mask") / Path("rust"),
-        line="dev-lang/rust-bin\n",
+    append_line_to_file(
+        path=Path("/etc/portage/package.mask/rust"),
+        line="dev-lang/rust-bin",
         unique=True,
     )
 
@@ -358,128 +292,88 @@ def cli(
         ["netdate"],
         force=False,
     )
-    sh.date(_out=sys.stdout, _err=sys.stderr)
-    sh.netdate(
+    hs.Command("date")(_out=sys.stdout, _err=sys.stderr)
+    # todo, figure out NTP over proxy
+    hs.Command("netdate")(
         "time.nist.gov",
         _out=sys.stdout,
         _err=sys.stderr,
         _ok_code=[0, 1],
-    )  # todo, figure out NTP over proxy
-    sh.date(_out=sys.stdout, _err=sys.stderr)
-
-    sh.emerge(
-        "-uvNDq",
-        "@world",
-        _out=sys.stdout,
-        _err=sys.stderr,
     )
+    hs.Command("date")(_out=sys.stdout, _err=sys.stderr)
 
-    # zfs_module_mode = "module"
-    # env-update || exit 1
-    # source /etc/profile || exit 1
+    _emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
-    # here down is stuff that might not need to run every time
-    # ---- begin run once, critical stuff ----
-
-    sh.passwd("-d", "root")
+    hs.Command("passwd")("-d", "root")
     if Path("/home/sysskel/etc/local.d/").exists():
-        sh.chmod("+x", "-R", "/home/sysskel/etc/local.d/")
-    # sh.eselect('python', 'list')  # depreciated
-    sh.eselect(
-        "profile",
-        "list",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
-    write_line_to_file(
-        path=Path("/etc") / Path("locale.gen"),
-        line="en_US.UTF-8 UTF-8\n",
+        hs.Command("chmod")("+x", "-R", "/home/sysskel/etc/local.d/")
+    _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
+
+    append_line_to_file(
+        path=Path("/etc/locale.gen"),
+        line="en_US.UTF-8 UTF-8",
         unique=True,
     )
-    sh.locale_gen(
-        _out=sys.stdout, _err=sys.stderr
-    )  # hm, musl does not need this? dont fail here for uclibc or musl
+    # musl does not need this, but must not fail there either
+    hs.Command("locale-gen")(_out=sys.stdout, _err=sys.stderr)
 
-    write_line_to_file(
-        path=Path("/etc") / Path("env.d") / Path("02collate"),
-        line='LC_COLLATE="C"\n',
+    append_line_to_file(
+        path=Path("/etc/env.d/02collate"),
+        line='LC_COLLATE="C"',
         unique=True,
     )
 
-    # not /etc/localtime, the next command does that
-    write_line_to_file(
-        path=Path("/etc") / Path("timezone"),
-        line="US/Arizona\n",
+    # not /etc/localtime, the emerge --config below does that
+    append_line_to_file(
+        path=Path("/etc/timezone"),
+        line="US/Arizona",
+        unique=True,
+    )
+    _emerge("--config", "timezone-data")
+
+    append_line_to_file(
+        path=Path("/etc/portage/makeopts.conf"),
+        line=f'MAKEOPTS="-j{os.cpu_count()}"',
         unique=True,
     )
 
-    sh.emerge("--config", "timezone-data")
-    sh.grep("processor", "/proc/cpuinfo")
-
-    cores = len(sh.grep("processor", "/proc/cpuinfo").splitlines())
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("makeopts.conf"),
-        line=f'MAKEOPTS="-j{cores}"\n',
+    append_line_to_file(
+        path=Path("/etc/portage/cflags.conf"),
+        line=f'CFLAGS="-march={march} -O2 -pipe -ggdb"',
         unique=True,
     )
 
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("cflags.conf"),
-        line=f'CFLAGS="-march={march} -O2 -pipe -ggdb"\n',
+    # this stuff ends up at the end of the final make.conf
+    append_line_to_file(
+        path=Path("/etc/portage/make.conf"),
+        line='ACCEPT_KEYWORDS="~amd64"',
+        unique=True,
+    )
+    append_line_to_file(
+        path=Path("/etc/portage/make.conf"),
+        line='EMERGE_DEFAULT_OPTS="--quiet-build=y --tree --nospinner"',
+        unique=True,
+    )
+    append_line_to_file(
+        path=Path("/etc/portage/make.conf"),
+        line='FEATURES="parallel-fetch splitdebug"',
         unique=True,
     )
 
-    # right here, portage needs to get configured... this stuff ends up at the end of the final make.conf
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("make.conf"),
-        line='ACCEPT_KEYWORDS="~amd64"\n',
-        unique=True,
-    )
-
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("make.conf"),
-        line='EMERGE_DEFAULT_OPTS="--quiet-build=y --tree --nospinner"\n',
-        unique=True,
-    )
-
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("make.conf"),
-        line='FEATURES="parallel-fetch splitdebug"\n',
-        unique=True,
-    )
-
-    # source /etc/profile
-
-    # works, but quite a delay for an installer
-    # install_packages(['gcc'], )
-    # sh.gcc_config('latest', _out=sys.stdout, _err=sys.stderr)
-
-    # install kernel and update symlink (via use flag)
-    os.environ["KCONFIG_OVERWRITECONFIG"] = (
-        "1"  # https://www.mail-archive.com/lede-dev@lists.infradead.org/msg07290.html
-    )
+    # https://www.mail-archive.com/lede-dev@lists.infradead.org/msg07290.html
+    os.environ["KCONFIG_OVERWRITECONFIG"] = "1"
 
     # required so /usr/src/linux exists
-    kernel_package_use = (
-        Path("/etc") / Path("portage") / Path("package.use") / Path(kernel)
-    )
-    write_line_to_file(
+    kernel_package_use = Path("/etc/portage/package.use") / kernel
+    append_line_to_file(
         path=kernel_package_use,
-        line=f"sys-kernel/{kernel} symlink\n",
+        line=f"sys-kernel/{kernel} symlink",
         unique=True,
     )
 
-    add_accept_keyword(
-        "sys-fs/zfs-9999",
-    )
-    add_accept_keyword(
-        "sys-fs/zfs-kmod-9999",
-    )
+    add_accept_keyword("sys-fs/zfs-9999")
+    add_accept_keyword("sys-fs/zfs-kmod-9999")
 
-    # memtest86+ # do before generating grub.conf
-    # bug, /boot isnt even mounted
-    #        "memtest86+",
-    # do this in compile-kernel instead
     install_packages(
         [
             f"sys-kernel/{kernel}",
@@ -492,25 +386,8 @@ def cli(
     )
     os.truncate(kernel_package_use, 0)  # dont leave symlink USE flag in place
 
-    # try:
-    #    sh.grep("CONFIG_TRIM_UNUSED_KSYMS is not set", "/usr/src/linux/.config")
-    # except sh.ErrorReturnCode_1 as e:
-    #    icp(e)
-    #    eprint("ERROR: Rebuild the kernel with CONFIG_TRIM_UNUSED_KSYMS must be =n")
-    #    sys.exit(1)
-
-    # try:
-    #    sh.grep("CONFIG_FB_EFI is not set", "/usr/src/linux/.config", _ok_code=[1])
-    # except sh.ErrorReturnCode_1 as e:
-    #    icp(e)
-    #    eprint("ERROR: Rebuild the kernel with CONFIG_FB_EFI=y")
-    #    sys.exit(1)
-
-    write_line_to_file(
-        path=Path("/etc") / Path("fstab"),
-        line="#<fs>\t<mountpoint>\t<type>\t<opts>\t<dump/pass>\n",
-        unique=False,
-        unlink_first=True,
+    Path("/etc/fstab").write_text(
+        "#<fs>\t<mountpoint>\t<type>\t<opts>\t<dump/pass>\n", encoding="utf8"
     )
 
     install_packages(
@@ -519,18 +396,14 @@ def cli(
     )  # required for gentoo-hardened RBAC
 
     # required for genkernel
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("package.use") / Path("util-linux"),
-        line="sys-apps/util-linux static-libs\n",
-        unique=False,
-        unlink_first=True,
+    Path("/etc/portage/package.use/util-linux").write_text(
+        "sys-apps/util-linux static-libs\n", encoding="utf8"
     )
 
-    write_line_to_file(
-        path=Path("/etc") / Path("portage") / Path("package.license"),
-        line="sys-kernel/linux-firmware linux-fw-redistributable no-source-code\n",
+    append_line_to_file(
+        path=Path("/etc/portage/package.license"),
+        line="sys-kernel/linux-firmware linux-fw-redistributable no-source-code",
         unique=True,
-        unlink_first=False,
     )
 
     install_packages(
@@ -540,116 +413,81 @@ def cli(
     os.makedirs("/etc/portage/repos.conf", exist_ok=True)
 
     if Path("/etc/portage/proxy.conf").exists():
-        with open("/etc/portage/proxy.conf", "r", encoding="utf8") as fh:
-            for line in fh:
-                line = line.strip()
-                line = "".join(line.split('"'))
-                line = "".join(line.split("#"))
-                if line:
-                    icp(line)
-                    # key = line.split("=")[0]
-                    # value = line.split("=")[1]
-                    # os.environ[key] = value    # done at top of file
-                    write_line_to_file(
-                        path=Path("/etc") / Path("wgetrc"),
-                        line=f"{line}\n",
-                        unique=True,
-                        unlink_first=False,
-                    )
+        for _line in proxy_conf_lines():
+            icp(_line)
+            append_line_to_file(
+                path=Path("/etc/wgetrc"),
+                line=_line,
+                unique=True,
+            )
 
-    write_line_to_file(
-        path=Path("/etc") / Path("wgetrc"),
-        line="use_proxy = on\n",
+    append_line_to_file(
+        path=Path("/etc/wgetrc"),
+        line="use_proxy = on",
         unique=True,
-        unlink_first=False,
     )
 
     if pinebook_overlay:
-        if "pinebookpro-overlay" not in sh.eselect("repository", "list", "-i"):
-            sh.eselect(
+        if "pinebookpro-overlay" not in str(_eselect("repository", "list", "-i")):
+            # ignores http_proxy
+            _eselect(
                 "repository",
                 "add",
                 "pinebookpro-overlay",
                 "git",
                 "https://github.com/Jannik2099/pinebookpro-overlay.git",
-            )  # ignores http_proxy
-        sh.emerge("--sync", "pinebookpro-overlay")
-        sh.emerge("-u", "pinebookpro-profile-overrides")
+            )
+        _emerge("--sync", "pinebookpro-overlay")
+        _emerge("-u", "pinebookpro-profile-overrides")
 
     install_packages(
         ["compile-kernel"],
         force=True,
     )  # requires jakeogh overlay
-    compile_kernel_command = sh.compile_kernel.bake("compile-and-install")
-    compile_kernel_command = compile_kernel_command.bake("--no-check-boot")
+    compile_kernel_command = hs.Command("compile-kernel")
+    compile_kernel_command.bake("compile-and-install", "--no-check-boot")
     if configure_kernel:
-        compile_kernel_command = compile_kernel_command.bake("--configure")
-    # compile_kernel_command(_out=sys.stdout, _err=sys.stderr, _ok_code=[0])
+        compile_kernel_command.bake("--configure")
+    eprint(f"{compile_kernel_command=}")
+    compile_kernel_command(_fg=True)
 
-    # compile_kernel_command_str = f"{compile_kernel_command.path} {' '.join(compile_kernel_command._partial_baked_args)}"
-    compile_kernel_command_str = f"{compile_kernel_command}"
-    eprint(f"{compile_kernel_command_str=}")
-    _exit_status = os.WEXITSTATUS(os.system(compile_kernel_command_str))
-    if _exit_status != 0:
-        raise ValueError(f"{compile_kernel_command_str=} exited: {_exit_status=}")
-
-    # this cant be done until memtest86+ and the kernel are ready
+    # this cant be done until the kernel is ready
     install_grub(
         boot_device=boot_device,
         skip_uefi=False,
         debug_grub=False,
     )
 
-    sh.rc_update(
+    # dont exit if this fails
+    _rc_update(
         "add",
         "zfs-mount",
         "boot",
         _out=sys.stdout,
         _err=sys.stderr,
         _ok_code=[0, 1],
-    )  # dont exit if this fails
+    )
 
-    gurantee_symlink(
-        relative=False,
-        target=Path("/etc/init.d/net.lo"),
-        link_name=Path("/etc/init.d/net.eth0"),
-    )
-    sh.rc_update(
-        "add",
-        "net.eth0",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    net_eth0 = Path("/etc/init.d/net.eth0")
+    net_eth0.unlink(missing_ok=True)
+    net_eth0.symlink_to("/etc/init.d/net.lo")
+    _rc_update("add", "net.eth0", "default", _out=sys.stdout, _err=sys.stderr)
 
     install_packages(
         ["gpm"],
         force=False,
         upgrade_only=True,
     )
-    sh.rc_update(
-        "add",
-        "gpm",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )  # console mouse support
-
-    # install_packages('elogind')
-    # rc-update add elogind default
+    # console mouse support
+    _rc_update("add", "gpm", "default", _out=sys.stdout, _err=sys.stderr)
 
     install_packages(
         ["app-admin/sysklogd"],
         force=False,
         upgrade_only=True,
     )
-    sh.rc_update(
-        "add",
-        "sysklogd",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )  # syslog-ng hangs on boot... bloated
+    # syslog-ng hangs on boot
+    _rc_update("add", "sysklogd", "default", _out=sys.stdout, _err=sys.stderr)
 
     os.makedirs("/etc/portage/package.mask", exist_ok=True)
     install_packages(
@@ -657,14 +495,10 @@ def cli(
         force=False,
         upgrade_only=True,
     )
-    # sh.eselect('unison', 'list') #todo
 
-    # sh.perl_cleaner('--reallyall', _out=sys.stdout, _err=sys.stderr)  # perhaps in post_reboot instead, too slow
-
-    # sys_apps/usbutils is required for boot scripts that use lsusb
-    # dev-python/distro  # distro detection in boot scripts
-    # dev-util/ctags     # so vim/nvim wont complain
-    # sys-process/glances  # needs rust
+    # sys-apps/usbutils is required for boot scripts that use lsusb
+    # dev-python/distro: distro detection in boot scripts
+    # dev-util/ctags: so vim/nvim wont complain
     install_packages(
         [
             "app-admin/sudo",
@@ -718,36 +552,25 @@ def cli(
         ["dev-python/replace-text"],
         force=True,
     )
-    sh.rc_update("add", "smartd", "default")
-    sh.rc_update("add", "nfs", "default")
-
-    sh.rc_update("add", "dbus", "default")
+    _rc_update("add", "smartd", "default")
+    _rc_update("add", "nfs", "default")
+    _rc_update("add", "dbus", "default")
 
     os.makedirs("/var/cache/ccache", exist_ok=True)
-    sh.chown("root:portage", "/var/cache/ccache")
-    sh.chmod("2775", "/var/cache/ccache")
+    hs.Command("chown")("root:portage", "/var/cache/ccache")
+    hs.Command("chmod")("2775", "/var/cache/ccache")
 
-    # sh.ls('/etc/ssh/sshd_config', '-al', _out=sys.stdout, _err=sys.stderr)
-
-    write_line_to_file(
-        path=Path("/etc") / Path("ssh") / Path("sshd_config"),
-        line="PermitRootLogin yes\n",
+    append_line_to_file(
+        path=Path("/etc/ssh/sshd_config"),
+        line="PermitRootLogin yes",
         unique=True,
-        unlink_first=False,
     )
 
     os.environ["LANG"] = "en_US.UTF8"  # to make click happy
 
-    write_line_to_file(
-        path=Path("/etc") / Path("inittab"),
-        line="PermitRootLogin yes\n",
-        unique=True,
-        unlink_first=False,
-    )
-
     with open("/etc/inittab", "r", encoding="utf8") as fh:
         if "noclear" not in fh.read():
-            sh.replace_text(
+            hs.Command("replace-text")(
                 "--match",
                 "c1:12345:respawn:/sbin/agetty 38400 tty1 linux",
                 "--replacement",
@@ -766,22 +589,8 @@ def cli(
     )
 
     eprint("sendgentoo_post_chroot.py complete! Exit chroot and reboot.")
-    _ans = input("Press enter to exit sendgentoo_post_chroot.py")
+    input("Press enter to exit sendgentoo_post_chroot.py")
 
 
 if __name__ == "__main__":
-    try:
-        # pylint: disable=E1120
-        cli()
-    except SystemExit:
-        # Handle SystemExit separately to respect signal handler exit
-        raise
-    except Exception as e:
-        # Catch any unexpected exceptions in main
-        print(f"Unexpected error: {str(e)}")
-        print("Full traceback:")
-        traceback.print_exc()
-        print("waiting for ENTER to exit")
-        time.sleep(5)
-        input("press enter to exit")
-        sys.exit(1)
+    cli()
