@@ -309,7 +309,7 @@ def cli(
 
     _emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
-    hs.Command("passwd")("-d", "root")
+    hs.Command("chpasswd")(_in=f"root:{newpasswd}\n")
     if Path("/home/sysskel/etc/local.d/").exists():
         hs.Command("chmod")("+x", "-R", "/home/sysskel/etc/local.d/")
     _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
