@@ -231,7 +231,6 @@ from portagetool import install_packages  # noqa: E402
     required=True,
     type=click.Choice(["native", "nocona"]),
 )
-@click.option("--newpasswd", is_flag=False, required=True)
 @click.option("--pinebook-overlay", is_flag=True, required=False)
 @click.option(
     "--kernel",
@@ -248,7 +247,6 @@ def cli(
     stdlib: str,
     boot_device: Path,
     march: str,
-    newpasswd: str,
     pinebook_overlay: bool,
     configure_kernel: bool,
     kernel: str,
@@ -268,7 +266,6 @@ def cli(
         stdlib,
         boot_device,
         march,
-        newpasswd,
         pinebook_overlay,
         kernel,
     )
@@ -309,7 +306,9 @@ def cli(
 
     _emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
-    hs.Command("chpasswd")(_in=f"root:{newpasswd}\n")
+    # first boot logs in on the console without a password, like the netboot
+    # image; set credentials post-install
+    hs.Command("passwd")("-d", "root", _out=sys.stdout, _err=sys.stderr)
     if Path("/home/sysskel/etc/local.d/").exists():
         hs.Command("chmod")("+x", "-R", "/home/sysskel/etc/local.d/")
     _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)

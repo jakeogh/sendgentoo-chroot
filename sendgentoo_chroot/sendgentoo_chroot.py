@@ -222,7 +222,6 @@ def rsync_cfg(
     type=click.Choice(["ext4", "zfs", "9p"]),
     default="ext4",
 )
-@click.option("--newpasswd", type=str, required=True)
 @click.option("--skip-to-rsync", is_flag=True)
 @click.option("--ip", type=str, required=True)
 @click.option("--ip-gateway", type=str, required=True)
@@ -249,7 +248,6 @@ def chroot_gentoo(
     march: str,
     arch: str,
     root_filesystem: str,
-    newpasswd: str,
     ip: str,
     ip_gateway: str,
     vm: None | str,
@@ -357,8 +355,6 @@ def chroot_gentoo(
         boot_device.as_posix(),
         "--march",
         march,
-        "--newpasswd",
-        newpasswd,
         "--kernel",
         kernel,
     ]
