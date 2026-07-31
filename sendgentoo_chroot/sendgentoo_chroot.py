@@ -224,7 +224,6 @@ def rsync_cfg(
 )
 @click.option("--skip-to-rsync", is_flag=True)
 @click.option("--ip", type=str, required=True)
-@click.option("--ip-gateway", type=str, required=True)
 @click.option("--pinebook-overlay", is_flag=True)
 @click.option("--vm", required=False, type=click.Choice(["qemu"]))
 @click.option("--ipython", is_flag=True)
