@@ -59,8 +59,12 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
     os.makedirs(mount_path / "home" / "cfg", exist_ok=True)
     os.makedirs(mount_path / "usr" / "local" / "portage", exist_ok=True)
 
-    # make sure /var/tmp/portage exists on the host
-    hs.Command("emerge")("eprint", _out=sys.stdout, _err=sys.stderr)
+    # /var/tmp/portage has to exist on the host to be bound into the chroot.
+    # Merging a package to get it as a side effect needs sources this machine
+    # has no route to, and the directory is all that was ever wanted.
+    _host_var_tmp_portage = Path("/var/tmp/portage")
+    _host_var_tmp_portage.mkdir(parents=True, exist_ok=True)
+    hs.Command("chown")("portage:portage", _host_var_tmp_portage.as_posix())
 
     _var_tmp_portage = mount_path / "var" / "tmp" / "portage"
     os.makedirs(_var_tmp_portage, exist_ok=True)
