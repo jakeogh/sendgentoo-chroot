@@ -249,7 +249,6 @@ def chroot_gentoo(
     arch: str,
     root_filesystem: str,
     ip: str,
-    ip_gateway: str,
     vm: None | str,
     skip_to_rsync: bool,
     mesa_use_enable: list[str],
@@ -286,11 +285,6 @@ def chroot_gentoo(
         append_line_to_file(
             path=mount_path / "etc" / "conf.d" / "net",
             line=f'config_eth0="{ip}/24"',
-            unique=True,
-        )
-        append_line_to_file(
-            path=mount_path / "etc" / "conf.d" / "net",
-            line=f'routes_eth0="default via {ip_gateway}"',
             unique=True,
         )
         append_line_to_file(
