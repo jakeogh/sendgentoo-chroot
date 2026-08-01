@@ -182,9 +182,14 @@ emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 # todo, move this to post_reboot, and make some kind of global /.native check
 emerge_force(["portage-set-compile-flags-on-boot"])
 
+# the packages install these into /etc/local.d, where openrc runs them at
+# boot; running them here makes the settings effective for this chroot's own
+# emerges rather than waiting for first boot
 emerge_force(["portage-set-emerge-default-opts-on-boot"])
+run("/etc/local.d/portage_set_emerge_default_opts.start")
 
 emerge_force(["portage-set-makeopts-on-boot"])
+run("/etc/local.d/portage_set_makeopts.start")
 
 
 from pathlib import Path  # noqa: E402
