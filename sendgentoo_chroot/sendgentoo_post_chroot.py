@@ -195,8 +195,11 @@ if _source_line not in _existing.splitlines():
     with open(_make_conf, "a", encoding="utf8") as _mc:
         _mc.write(f"{_separator}{_source_line}\n")
 run("cfg-layer", "autodetect")
-# no-op until a package supplies /etc/cfg-layer/groups; once one does, this is
-# where every managed file lands, including /etc/portage/patches
+
+# the groups themselves arrive as a package, so nothing is copied into the
+# target: sync materializes every managed file from what was merged here,
+# including /etc/portage/patches
+emerge_force(["app-portage/cfg-layer-groups"])
 run("cfg-layer", "sync")
 
 
