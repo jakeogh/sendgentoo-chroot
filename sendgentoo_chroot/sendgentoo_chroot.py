@@ -167,6 +167,7 @@ def install_post_chroot(
     default="glibc",
 )
 @click.option("--root-password-hash", required=False, type=str, default=None)
+@click.option("--distfiles-url", required=True, type=str)
 @click.option(
     "--boot-device",
     type=click.Path(
@@ -228,6 +229,7 @@ def chroot_gentoo(
     mount_path: Path,
     stdlib: str,
     root_password_hash: None | str,
+    distfiles_url: str,
     boot_device: Path,
     hostname: str,
     arch: str,
@@ -303,6 +305,15 @@ def chroot_gentoo(
     append_line_to_file(
         path=mount_path / "etc" / "portage" / "package.use" / "mesa",
         line=f"media-libs/mesa {mesa_use}",
+        unique=True,
+    )
+
+    _var_cache_distfiles = mount_path / "var" / "cache" / "distfiles"
+    os.makedirs(_var_cache_distfiles, exist_ok=True)
+    hs.Command("chown")("portage:portage", _var_cache_distfiles.as_posix())
+    append_line_to_file(
+        path=mount_path / "etc" / "portage" / "make.conf",
+        line=f'GENTOO_MIRRORS="{distfiles_url}"',
         unique=True,
     )
 
