@@ -177,16 +177,24 @@ emerge_force(["dev-python/boottool"])
 emerge_force(["dev-python/compile-kernel"])
 emerge_force(["dev-python/icecream"])
 emerge_force(["dev-python/smarttool"])  # /etc/local.d/all_block_devices_passed.start
-emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 
-# todo, move this to post_reboot, and make some kind of global /.native check
-emerge_force(["portage-set-compile-flags-on-boot"])
-
-# the packages install these into /etc/local.d, where openrc runs them at
-# boot; running them here makes the settings effective for this chroot's own
-# emerges rather than waiting for first boot
-emerge_force(["portage-set-emerge-default-opts-on-boot"])
-run("/etc/local.d/portage_set_emerge_default_opts.start")
+# cfg-layer supersedes the portage-set-*-on-boot packages: it detects cpu
+# flags, cflags, makeopts and emerge opts into one file. Generated here rather
+# than at first boot so this chroot's remaining emerges use the flags, and the
+# source line is added first because a generated file nothing reads is worse
+# than no file.
+emerge_force(["app-portage/cfg-layer"])
+_make_conf = "/etc/portage/make.conf"
+_source_line = "source /etc/cfg-layer/autodetect.conf"
+with open(_make_conf, encoding="utf8") as _mc:
+    _existing = _mc.read()
+if _source_line not in _existing.splitlines():
+    # a stage3 make.conf need not end in a newline, and appending to a partial
+    # line both hides the directive and defeats the check on the next run
+    _separator = "" if _existing.endswith("\n") or not _existing else "\n"
+    with open(_make_conf, "a", encoding="utf8") as _mc:
+        _mc.write(f"{_separator}{_source_line}\n")
+run("cfg-layer", "autodetect")
 
 
 from pathlib import Path  # noqa: E402
@@ -225,12 +233,6 @@ from portagetool import install_packages  # noqa: E402
         path_type=Path,
     ),
 )
-@click.option(
-    "--march",
-    is_flag=False,
-    required=True,
-    type=click.Choice(["native", "nocona"]),
-)
 @click.option("--pinebook-overlay", is_flag=True, required=False)
 @click.option(
     "--kernel",
@@ -246,7 +248,6 @@ def cli(
     ctx: click.Context,
     stdlib: str,
     boot_device: Path,
-    march: str,
     pinebook_overlay: bool,
     configure_kernel: bool,
     kernel: str,
@@ -265,7 +266,6 @@ def cli(
     icp(
         stdlib,
         boot_device,
-        march,
         pinebook_overlay,
         kernel,
     )
@@ -333,27 +333,10 @@ def cli(
     )
     _emerge("--config", "timezone-data")
 
-    append_line_to_file(
-        path=Path("/etc/portage/makeopts.conf"),
-        line=f'MAKEOPTS="-j{os.cpu_count()}"',
-        unique=True,
-    )
-
-    append_line_to_file(
-        path=Path("/etc/portage/cflags.conf"),
-        line=f'CFLAGS="-march={march} -O2 -pipe -ggdb"',
-        unique=True,
-    )
-
     # this stuff ends up at the end of the final make.conf
     append_line_to_file(
         path=Path("/etc/portage/make.conf"),
         line='ACCEPT_KEYWORDS="~amd64"',
-        unique=True,
-    )
-    append_line_to_file(
-        path=Path("/etc/portage/make.conf"),
-        line='EMERGE_DEFAULT_OPTS="--quiet-build=y --tree --nospinner"',
         unique=True,
     )
     append_line_to_file(

@@ -178,7 +178,6 @@ def install_post_chroot(
     required=True,
 )
 @click.option("--hostname", type=str, required=True)
-@click.option("--march", required=True, type=click.Choice(["native", "nocona"]))
 @click.option(
     "--arch",
     is_flag=False,
@@ -229,7 +228,6 @@ def chroot_gentoo(
     stdlib: str,
     boot_device: Path,
     hostname: str,
-    march: str,
     arch: str,
     root_filesystem: str,
     ip: str,
@@ -331,8 +329,6 @@ def chroot_gentoo(
         stdlib,
         "--boot-device",
         boot_device.as_posix(),
-        "--march",
-        march,
         "--kernel",
         kernel,
     ]
