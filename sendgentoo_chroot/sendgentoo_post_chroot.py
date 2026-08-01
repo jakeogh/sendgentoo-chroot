@@ -188,9 +188,6 @@ emerge_force(["portage-set-compile-flags-on-boot"])
 emerge_force(["portage-set-emerge-default-opts-on-boot"])
 run("/etc/local.d/portage_set_emerge_default_opts.start")
 
-emerge_force(["portage-set-makeopts-on-boot"])
-run("/etc/local.d/portage_set_makeopts.start")
-
 
 from pathlib import Path  # noqa: E402
 
