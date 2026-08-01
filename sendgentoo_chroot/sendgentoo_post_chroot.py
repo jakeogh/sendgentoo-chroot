@@ -32,6 +32,22 @@ def run(*cmd: str) -> None:
     subprocess.run(cmd, check=True)
 
 
+MAKE_CONF = "/etc/portage/make.conf"
+
+
+def append_make_conf(line: str) -> None:
+    # a stage3 make.conf need not end in a newline, and appending to a partial
+    # line both hides the directive and defeats the check on the next run
+    with open(MAKE_CONF, encoding="utf8") as fh:
+        existing = fh.read()
+    if line in existing.splitlines():
+        return
+    separator = "" if existing.endswith("\n") or not existing else "\n"
+    with open(MAKE_CONF, "a", encoding="utf8") as fh:
+        fh.write(f"{separator}{line}\n")
+    print(f"{MAKE_CONF}: {line}", file=sys.stderr)
+
+
 def run_capture(*cmd: str) -> str:
     print(" ".join(cmd), file=sys.stderr)
     return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
@@ -46,6 +62,12 @@ def proxy_conf_lines() -> list[str]:
                 lines.append(line)
     return lines
 
+
+# Before any emerge: the target must resolve the same versions the server
+# does, or it asks the deployment mirror for a distfile the server never
+# fetched. Setting this in the command body below is too late -- everything
+# merged during this module's bootstrap would resolve as stable.
+append_make_conf('ACCEPT_KEYWORDS="~amd64"')
 
 if not os.environ.get("TMUX"):
     print("Not running in tmux. Installing tmux...")
@@ -184,16 +206,7 @@ emerge_force(["dev-python/smarttool"])  # /etc/local.d/all_block_devices_passed.
 # source line is added first because a generated file nothing reads is worse
 # than no file.
 emerge_force(["app-portage/cfg-layer"])
-_make_conf = "/etc/portage/make.conf"
-_source_line = "source /etc/cfg-layer/autodetect.conf"
-with open(_make_conf, encoding="utf8") as _mc:
-    _existing = _mc.read()
-if _source_line not in _existing.splitlines():
-    # a stage3 make.conf need not end in a newline, and appending to a partial
-    # line both hides the directive and defeats the check on the next run
-    _separator = "" if _existing.endswith("\n") or not _existing else "\n"
-    with open(_make_conf, "a", encoding="utf8") as _mc:
-        _mc.write(f"{_separator}{_source_line}\n")
+append_make_conf("source /etc/cfg-layer/autodetect.conf")
 run("cfg-layer", "autodetect")
 
 # the groups themselves arrive as a package, so nothing is copied into the
@@ -339,11 +352,6 @@ def cli(
     _emerge("--config", "timezone-data")
 
     # this stuff ends up at the end of the final make.conf
-    append_line_to_file(
-        path=Path("/etc/portage/make.conf"),
-        line='ACCEPT_KEYWORDS="~amd64"',
-        unique=True,
-    )
     append_line_to_file(
         path=Path("/etc/portage/make.conf"),
         line='FEATURES="parallel-fetch splitdebug"',
