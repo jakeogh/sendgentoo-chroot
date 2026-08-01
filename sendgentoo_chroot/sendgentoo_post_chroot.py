@@ -239,6 +239,7 @@ from portagetool import install_packages  # noqa: E402
         path_type=Path,
     ),
 )
+@click.option("--root-password-hash", is_flag=False, required=False, default=None)
 @click.option("--pinebook-overlay", is_flag=True, required=False)
 @click.option(
     "--kernel",
@@ -254,6 +255,7 @@ def cli(
     ctx: click.Context,
     stdlib: str,
     boot_device: Path,
+    root_password_hash: None | str,
     pinebook_overlay: bool,
     configure_kernel: bool,
     kernel: str,
@@ -312,9 +314,6 @@ def cli(
 
     _emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
-    # first boot logs in on the console without a password, like the netboot
-    # image; set credentials post-install
-    hs.Command("passwd")("-d", "root", _out=sys.stdout, _err=sys.stderr)
     _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
 
     append_line_to_file(
@@ -556,6 +555,14 @@ def cli(
         line="PermitRootLogin yes",
         unique=True,
     )
+    _rc_update("add", "sshd", "default", _out=sys.stdout, _err=sys.stderr)
+
+    if root_password_hash:
+        # -e: the value is already a crypt hash, so no plaintext appears in an
+        # argv anywhere between the deploy command line and here
+        hs.Command("chpasswd")("-e", _in=f"root:{root_password_hash}\n")
+    else:
+        hs.Command("passwd")("-d", "root", _out=sys.stdout, _err=sys.stderr)
 
     os.environ["LANG"] = "en_US.UTF8"  # to make click happy
 

@@ -166,6 +166,7 @@ def install_post_chroot(
     type=click.Choice(["glibc", "musl"]),
     default="glibc",
 )
+@click.option("--root-password-hash", required=False, type=str, default=None)
 @click.option(
     "--boot-device",
     type=click.Path(
@@ -226,6 +227,7 @@ def chroot_gentoo(
     ctx: click.Context,
     mount_path: Path,
     stdlib: str,
+    root_password_hash: None | str,
     boot_device: Path,
     hostname: str,
     arch: str,
@@ -326,6 +328,8 @@ def chroot_gentoo(
         "--kernel",
         kernel,
     ]
+    if root_password_hash:
+        post_chroot_args += ["--root-password-hash", root_password_hash]
     if pinebook_overlay:
         post_chroot_args.append("--pinebook-overlay")
     if configure_kernel:
