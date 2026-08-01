@@ -195,6 +195,9 @@ if _source_line not in _existing.splitlines():
     with open(_make_conf, "a", encoding="utf8") as _mc:
         _mc.write(f"{_separator}{_source_line}\n")
 run("cfg-layer", "autodetect")
+# no-op until a package supplies /etc/cfg-layer/groups; once one does, this is
+# where every managed file lands, including /etc/portage/patches
+run("cfg-layer", "sync")
 
 
 from pathlib import Path  # noqa: E402

@@ -289,12 +289,6 @@ def chroot_gentoo(
         )
         hs.Command("/etc/init.d/tinyproxy")("start", _out=sys.stdout, _err=sys.stderr)
 
-    _cp(
-        "-ar",
-        "/home/sysskel/etc/portage/patches",
-        (mount_path / "etc" / "portage").as_posix(),
-    )
-
     append_line_to_file(
         path=mount_path / "etc" / "hosts",
         line=f"127.0.0.1\tlocalhost\t{hostname}",
