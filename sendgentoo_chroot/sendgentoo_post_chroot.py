@@ -183,10 +183,8 @@ emerge_force(["app-misc/resolve-march-native"])  # for /etc/portage/cflags.conf
 emerge_force(["portage-set-compile-flags-on-boot"])
 
 emerge_force(["portage-set-emerge-default-opts-on-boot"])
-run("/home/sysskel/etc/local.d/portage_set_emerge_default_opts.start")
 
 emerge_force(["portage-set-makeopts-on-boot"])
-run("/home/sysskel/etc/local.d/portage_set_makeopts.start")
 
 
 from pathlib import Path  # noqa: E402
@@ -309,8 +307,6 @@ def cli(
     # first boot logs in on the console without a password, like the netboot
     # image; set credentials post-install
     hs.Command("passwd")("-d", "root", _out=sys.stdout, _err=sys.stderr)
-    if Path("/home/sysskel/etc/local.d/").exists():
-        hs.Command("chmod")("+x", "-R", "/home/sysskel/etc/local.d/")
     _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
 
     append_line_to_file(

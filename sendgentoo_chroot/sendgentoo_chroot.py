@@ -56,7 +56,6 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
         source=Path("/run"),
     )
 
-    os.makedirs(mount_path / "home" / "cfg", exist_ok=True)
     os.makedirs(mount_path / "usr" / "local" / "portage", exist_ok=True)
 
     # /var/tmp/portage has to exist on the host to be bound into the chroot.
@@ -87,7 +86,7 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
     )
 
     ctx.invoke(
-        rsync_cfg,
+        install_post_chroot,
         mount_path=mount_path,
     )
 
@@ -123,7 +122,7 @@ def cli(
 )
 @click_add_options(click_global_options)
 @click.pass_context
-def rsync_cfg(
+def install_post_chroot(
     ctx: click.Context,
     mount_path: Path,
     verbose_inf: bool,
@@ -139,24 +138,6 @@ def rsync_cfg(
     )
 
     am_root()
-
-    hs.Command("rsync")(
-        "--exclude=_priv",
-        "--exclude=_myapps/gentoo",
-        "--exclude=virt/iso",
-        "--one-file-system",
-        "--delete",
-        "--perms",
-        "--executability",
-        "--human-readable",
-        "--recursive",
-        "--links",
-        "--times",
-        "/home/cfg",
-        f"{mount_path.as_posix()}/home/",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
 
     with resources.as_file(resources.files("sendgentoo_chroot")) as _pkg_dir:
         _post_chroot_script = _pkg_dir / "sendgentoo_post_chroot.py"
@@ -309,12 +290,6 @@ def chroot_gentoo(
             unique=True,
         )
         hs.Command("/etc/init.d/tinyproxy")("start", _out=sys.stdout, _err=sys.stderr)
-
-    _cp(
-        "-ar",
-        "/home/sysskel/etc/portage/patches",
-        (mount_path / "etc" / "portage").as_posix(),
-    )
 
     append_line_to_file(
         path=mount_path / "etc" / "hosts",
