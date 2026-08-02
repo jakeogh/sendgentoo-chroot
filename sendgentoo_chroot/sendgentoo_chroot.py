@@ -338,6 +338,10 @@ def chroot_gentoo(
         unique=True,
     )
 
+    # the same rewrite this environment uses: it names the deployment server,
+    # which is the only host the target can reach, so live ebuilds resolve
+    _cp("/etc/gitconfig", (mount_path / "etc" / "gitconfig").as_posix())
+
     hs.Command("emerge")(
         "app-misc/tmux", "--fetchonly", _out=sys.stdout, _err=sys.stderr
     )
