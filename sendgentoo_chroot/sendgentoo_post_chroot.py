@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 import traceback
+from pathlib import Path
 
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
@@ -108,8 +109,10 @@ if os.path.exists("/etc/portage/proxy.conf"):
         key, value = _line.split("=", maxsplit=1)
         os.environ[key] = value
 
+# no sync anywhere in here: every repository is bound in from the deployment
+# environment with auto-sync off. A sync would reach for rsync or github and
+# gemato would try a keyserver, none of which the target can resolve.
 run("emerge", "--quiet", "dev-vcs/git", "-1", "-u")
-run("emerge", "--sync")
 run(
     "emerge",
     "--quiet",
@@ -120,18 +123,10 @@ run(
     "-u",
 )
 
-os.makedirs("/etc/portage/repos.conf", exist_ok=True)
-if "jakeogh" not in run_capture("eselect", "repository", "list", "-i"):
-    # ignores http_proxy
-    run(
-        "eselect",
-        "repository",
-        "add",
-        "jakeogh",
-        "git",
-        "https://github.com/jakeogh/jakeogh",
-    )
-run("emaint", "sync", "-r", "jakeogh")  # needs git
+assert Path("/var/db/repos/jakeogh").is_dir(), (
+    "the jakeogh overlay is not bound into this chroot; the deployment "
+    "environment must carry it"
+)
 
 # hs comes from the jakeogh overlay, so this cannot happen any earlier
 run("emerge", "--quiet", "dev-python/hs", "-1", "-u")
@@ -181,10 +176,13 @@ def emerge_force(packages: list[str]) -> None:
 
 
 def enable_repository(repo: str) -> None:
-    if repo not in str(_eselect("repository", "list", "-i")):
-        # ignores http_proxy
-        _eselect("repository", "enable", repo, _out=sys.stdout, _err=sys.stderr)
-    _emaint("sync", "-r", repo, _out=sys.stdout, _err=sys.stderr)  # needs git
+    # bound in and declared in repos.conf by the chroot; nothing to enable and
+    # nothing to sync. Asserted rather than skipped: a package that needs this
+    # overlay fails far less clearly than the missing tree does.
+    assert Path("/var/db/repos", repo).is_dir(), (
+        f"repository {repo} is not bound into this chroot; add it to the "
+        "deployment server so the image carries it"
+    )
 
 
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
@@ -216,7 +214,6 @@ emerge_force(["app-portage/cfg-layer-groups"])
 run("cfg-layer", "sync")
 
 
-from pathlib import Path  # noqa: E402
 
 import click  # noqa: E402
 from asserttool import ic  # noqa: E402
@@ -426,16 +423,7 @@ def cli(
     )
 
     if pinebook_overlay:
-        if "pinebookpro-overlay" not in str(_eselect("repository", "list", "-i")):
-            # ignores http_proxy
-            _eselect(
-                "repository",
-                "add",
-                "pinebookpro-overlay",
-                "git",
-                "https://github.com/Jannik2099/pinebookpro-overlay.git",
-            )
-        _emerge("--sync", "pinebookpro-overlay")
+        enable_repository(repo="pinebookpro-overlay")
         _emerge("-u", "pinebookpro-profile-overrides")
 
     install_packages(

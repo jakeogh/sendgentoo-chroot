@@ -76,14 +76,35 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
         source=Path("/var/tmp/portage"),
     )
 
-    _gentoo_repo = mount_path / "var" / "db" / "repos" / "gentoo"
-    _gentoo_repo.mkdir(exist_ok=True)
-    mount_something(
-        mountpoint=_gentoo_repo,
-        mount_type="rbind",
-        slave=False,
-        source=Path("/var/db/repos/gentoo"),
+    # Every repository this environment has, not just gentoo: the target
+    # cannot reach github or a rsync mirror, so anything it is not given here
+    # it cannot obtain at all. auto-sync is off for the same reason -- these
+    # are the server's trees and syncing them is the server's job.
+    _repos_conf = mount_path / "etc" / "portage" / "repos.conf"
+    _repos_conf.mkdir(parents=True, exist_ok=True)
+    _entries = []
+    for _repo in str(hs.Command("portageq")("get_repos", "/")).split():
+        _path = Path(
+            str(hs.Command("portageq")("get_repo_path", "/", _repo)).strip()
+        )
+        assert _path.is_dir(), f"repository {_repo} is not at {_path.as_posix()}"
+        _target = mount_path / _path.relative_to("/")
+        _target.mkdir(parents=True, exist_ok=True)
+        mount_something(
+            mountpoint=_target,
+            mount_type="rbind",
+            slave=False,
+            source=_path,
+        )
+        _entries.append(
+            f"[{_repo}]\nlocation = {_path.as_posix()}\nauto-sync = no\n"
+        )
+    (_repos_conf / "sendgentoo.conf").write_text(
+        "# bound from the deployment environment; the target syncs nothing\n\n"
+        + "\n".join(_entries),
+        encoding="utf8",
     )
+    print(f"repos bound into {mount_path.as_posix()}: {len(_entries)}", file=sys.stderr)
 
     ctx.invoke(
         install_post_chroot,
