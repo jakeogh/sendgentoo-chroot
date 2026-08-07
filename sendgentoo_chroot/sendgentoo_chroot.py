@@ -84,9 +84,7 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
     _repos_conf.mkdir(parents=True, exist_ok=True)
     _entries = []
     for _repo in str(hs.Command("portageq")("get_repos", "/")).split():
-        _path = Path(
-            str(hs.Command("portageq")("get_repo_path", "/", _repo)).strip()
-        )
+        _path = Path(str(hs.Command("portageq")("get_repo_path", "/", _repo)).strip())
         assert _path.is_dir(), f"repository {_repo} is not at {_path.as_posix()}"
         _target = mount_path / _path.relative_to("/")
         _target.mkdir(parents=True, exist_ok=True)
@@ -96,9 +94,7 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
             slave=False,
             source=_path,
         )
-        _entries.append(
-            f"[{_repo}]\nlocation = {_path.as_posix()}\nauto-sync = no\n"
-        )
+        _entries.append(f"[{_repo}]\nlocation = {_path.as_posix()}\nauto-sync = no\n")
     (_repos_conf / "sendgentoo.conf").write_text(
         "# bound from the deployment environment; the target syncs nothing\n\n"
         + "\n".join(_entries),
@@ -187,7 +183,12 @@ def install_post_chroot(
     type=click.Choice(["glibc", "musl"]),
     default="glibc",
 )
-@click.option("--root-password-hash", required=False, type=str, default=None)
+@click.option(
+    "--root-password-hash",
+    required=False,
+    type=str,
+    default=None,
+)
 @click.option("--distfiles-url", required=True, type=str)
 @click.option(
     "--boot-device",
@@ -320,9 +321,7 @@ def chroot_gentoo(
         unique=True,
     )
 
-    mesa_use = " ".join(
-        [*mesa_use_enable, *("-" + flag for flag in mesa_use_disable)]
-    )
+    mesa_use = " ".join([*mesa_use_enable, *("-" + flag for flag in mesa_use_disable)])
     append_line_to_file(
         path=mount_path / "etc" / "portage" / "package.use" / "mesa",
         line=f"media-libs/mesa {mesa_use}",
@@ -343,7 +342,10 @@ def chroot_gentoo(
     _cp("/etc/gitconfig", (mount_path / "etc" / "gitconfig").as_posix())
 
     hs.Command("emerge")(
-        "app-misc/tmux", "--fetchonly", _out=sys.stdout, _err=sys.stderr
+        "app-misc/tmux",
+        "--fetchonly",
+        _out=sys.stdout,
+        _err=sys.stderr,
     )
 
     # cross-compile bug: chroot needs the host ischroot
