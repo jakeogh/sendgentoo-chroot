@@ -355,6 +355,16 @@ def chroot_gentoo(
         "*/*::jakeogh **\n", encoding="utf8"
     )
 
+    # dev-python/ptyprocess requires flit-core below 4 and no newer revision
+    # exists, so a tree carrying flit-core 4 satisfies neither side. Stated
+    # here as well as in the image because the target resolves its own world.
+    _mask = mount_path / "etc" / "portage" / "package.mask"
+    assert not _mask.is_file(), (
+        f"{_mask.as_posix()} is a file; this expects the directory form"
+    )
+    _mask.mkdir(parents=True, exist_ok=True)
+    (_mask / "sendgentoo").write_text(">=dev-python/flit-core-4\n", encoding="utf8")
+
     hs.Command("emerge")(
         "app-misc/tmux", "--fetchonly", _out=sys.stdout, _err=sys.stderr
     )
