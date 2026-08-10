@@ -51,12 +51,7 @@ def append_make_conf(line: str) -> None:
 
 def run_capture(*cmd: str) -> str:
     print(" ".join(cmd), file=sys.stderr)
-    return subprocess.run(
-        cmd,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
+    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
 
 
 def proxy_conf_lines() -> list[str]:
@@ -75,60 +70,14 @@ def proxy_conf_lines() -> list[str]:
 # merged during this module's bootstrap would resolve as stable.
 append_make_conf('ACCEPT_KEYWORDS="~amd64"')
 
-if not os.environ.get("TMUX"):
-    print("Not running in tmux. Installing tmux...")
-    run("emerge", "app-misc/tmux", "-u")
-    script_path = os.path.realpath(__file__)
-    print(f"Launching new tmux session... {script_path=} {sys.argv[1:]}")
-    run(
-        "tmux",
-        "-L",
-        "sendgentoo",
-        "new-session",
-        "-d",
-        "-s",
-        "bootstrap",
-    )
-    time.sleep(3)
-    subprocess.run(["ls", "-al", "/tmp/tmux-0/"], check=False)  # diagnostic
-    run(
-        "tmux",
-        "-L",
-        "sendgentoo",
-        "set-option",
-        "-g",
-        "remain-on-exit",
-        "failed",
-    )
-    cmd = [
-        "tmux",
-        "-L",
-        "sendgentoo",
-        "new-session",
-        "-s",
-        "myscript",
-        "python3",
-        script_path,
-    ] + sys.argv[1:]
-    print(f"{cmd=}")
-    subprocess.run(cmd, check=True)
-    sys.exit(0)
+# No tmux here. The bootstrap already runs this whole install inside a tmux
+# session in the deployment environment, and the chroot is entered with env -i,
+# so TMUX is always unset and this always nested. The nested server's socket
+# lives in the chroot's /tmp, which the outer session cannot reach, leaving a
+# pane whose prefix key goes nowhere and which cannot be recovered once dead.
+print("Arguments received:", sys.argv[1:], file=sys.stderr)
 
-print("Running inside tmux!")
-print("Arguments received:", sys.argv[1:])
-
-try:
-    print("os.environ['TMUX']:", os.environ["TMUX"])
-except KeyError:
-    print("start tmux!", file=sys.stderr)
-    sys.exit(1)
-
-run(
-    "eselect",
-    "news",
-    "read",
-    "all",
-)
+run("eselect", "news", "read", "all")
 
 if os.path.exists("/etc/portage/proxy.conf"):
     for _line in proxy_conf_lines():
@@ -138,13 +87,7 @@ if os.path.exists("/etc/portage/proxy.conf"):
 # no sync anywhere in here: every repository is bound in from the deployment
 # environment with auto-sync off. A sync would reach for rsync or github and
 # gemato would try a keyserver, none of which the target can resolve.
-run(
-    "emerge",
-    "--quiet",
-    "dev-vcs/git",
-    "-1",
-    "-u",
-)
+run("emerge", "--quiet", "dev-vcs/git", "-1", "-u")
 run(
     "emerge",
     "--quiet",
@@ -161,13 +104,7 @@ assert Path("/var/db/repos/jakeogh").is_dir(), (
 )
 
 # hs comes from the jakeogh overlay, so this cannot happen any earlier
-run(
-    "emerge",
-    "--quiet",
-    "dev-python/hs",
-    "-1",
-    "-u",
-)
+run("emerge", "--quiet", "dev-python/hs", "-1", "-u")
 import hs  # noqa: E402
 
 _emerge = hs.Command("emerge")
@@ -226,6 +163,7 @@ def enable_repository(repo: str) -> None:
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
 # dev-python/convertdate and its dep dev-python/pymeeus to make
 # dev-python/dateparser-9999::jakeogh happy, which portagetool depends on
+enable_repository(repo="slonko")
 
 emerge_force(["dev-python/portagetool"])
 emerge_force(["dev-python/asserttool"])
@@ -249,6 +187,7 @@ run("cfg-layer", "autodetect")
 # including /etc/portage/patches
 emerge_force(["app-portage/cfg-layer-groups"])
 run("cfg-layer", "sync")
+
 
 
 import click  # noqa: E402
@@ -285,12 +224,7 @@ from portagetool import install_packages  # noqa: E402
         path_type=Path,
     ),
 )
-@click.option(
-    "--root-password-hash",
-    is_flag=False,
-    required=False,
-    default=None,
-)
+@click.option("--root-password-hash", is_flag=False, required=False, default=None)
 @click.option("--pinebook-overlay", is_flag=True, required=False)
 @click.option(
     "--kernel",
@@ -363,19 +297,9 @@ def cli(
     )
     hs.Command("date")(_out=sys.stdout, _err=sys.stderr)
 
-    _emerge(
-        "-uvNDq",
-        "@world",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    _emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
-    _eselect(
-        "profile",
-        "list",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
 
     append_line_to_file(
         path=Path("/etc/locale.gen"),
@@ -508,13 +432,7 @@ def cli(
     net_eth0 = Path("/etc/init.d/net.eth0")
     net_eth0.unlink(missing_ok=True)
     net_eth0.symlink_to("/etc/init.d/net.lo")
-    _rc_update(
-        "add",
-        "net.eth0",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    _rc_update("add", "net.eth0", "default", _out=sys.stdout, _err=sys.stderr)
 
     install_packages(
         ["gpm"],
@@ -522,13 +440,7 @@ def cli(
         upgrade_only=True,
     )
     # console mouse support
-    _rc_update(
-        "add",
-        "gpm",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    _rc_update("add", "gpm", "default", _out=sys.stdout, _err=sys.stderr)
 
     install_packages(
         ["app-admin/sysklogd"],
@@ -536,13 +448,7 @@ def cli(
         upgrade_only=True,
     )
     # syslog-ng hangs on boot
-    _rc_update(
-        "add",
-        "sysklogd",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    _rc_update("add", "sysklogd", "default", _out=sys.stdout, _err=sys.stderr)
 
     os.makedirs("/etc/portage/package.mask", exist_ok=True)
     install_packages(
@@ -620,25 +526,14 @@ def cli(
         line="PermitRootLogin yes",
         unique=True,
     )
-    _rc_update(
-        "add",
-        "sshd",
-        "default",
-        _out=sys.stdout,
-        _err=sys.stderr,
-    )
+    _rc_update("add", "sshd", "default", _out=sys.stdout, _err=sys.stderr)
 
     if root_password_hash:
         # -e: the value is already a crypt hash, so no plaintext appears in an
         # argv anywhere between the deploy command line and here
         hs.Command("chpasswd")("-e", _in=f"root:{root_password_hash}\n")
     else:
-        hs.Command("passwd")(
-            "-d",
-            "root",
-            _out=sys.stdout,
-            _err=sys.stderr,
-        )
+        hs.Command("passwd")("-d", "root", _out=sys.stdout, _err=sys.stderr)
 
     os.environ["LANG"] = "en_US.UTF8"  # to make click happy
 
