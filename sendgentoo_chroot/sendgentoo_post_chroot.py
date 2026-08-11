@@ -161,9 +161,6 @@ def enable_repository(repo: str) -> None:
 
 
 enable_repository(repo="natinst")  # dev-python/PyVISA-py
-# dev-python/convertdate and its dep dev-python/pymeeus to make
-# dev-python/dateparser-9999::jakeogh happy, which portagetool depends on
-enable_repository(repo="slonko")
 
 emerge_force(["dev-python/portagetool"])
 emerge_force(["dev-python/asserttool"])
