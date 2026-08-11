@@ -365,6 +365,23 @@ def chroot_gentoo(
     _mask.mkdir(parents=True, exist_ok=True)
     (_mask / "sendgentoo").write_text(">=dev-python/flit-core-4\n", encoding="utf8")
 
+    _use = mount_path / "etc" / "portage" / "package.use"
+    assert not _use.is_file(), (
+        f"{_use.as_posix()} is a file; this expects the directory form"
+    )
+    _use.mkdir(parents=True, exist_ok=True)
+    (_use / "sendgentoo").write_text(
+        # Two optional features cost a from-source rust bootstrap between
+        # them. charset-normalizer's native-extensions is a mypyc speedup that
+        # pulls mypy, ast-serialize, maturin and rust; git's rust flag pulls
+        # two further rust slots, and those self-bootstrap into a circular
+        # dependency because the tree carries no matching rust-bin slot to
+        # break the cycle. Neither feature is needed to install a system.
+        "dev-python/charset-normalizer -native-extensions\n"
+        "dev-vcs/git -rust\n",
+        encoding="utf8",
+    )
+
     hs.Command("emerge")(
         "app-misc/tmux", "--fetchonly", _out=sys.stdout, _err=sys.stderr
     )
