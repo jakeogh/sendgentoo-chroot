@@ -371,12 +371,11 @@ def chroot_gentoo(
     )
     _use.mkdir(parents=True, exist_ok=True)
     (_use / "sendgentoo").write_text(
-        # Two optional features cost a from-source rust bootstrap between
-        # them. charset-normalizer's native-extensions is a mypyc speedup that
-        # pulls mypy, ast-serialize, maturin and rust; git's rust flag pulls
-        # two further rust slots, and those self-bootstrap into a circular
-        # dependency because the tree carries no matching rust-bin slot to
-        # break the cycle. Neither feature is needed to install a system.
+        # Two optional features pull rust for no benefit here:
+        # charset-normalizer's native-extensions is a mypyc speedup that pulls
+        # mypy, ast-serialize, maturin and rust, and git's rust flag pulls two
+        # further rust slots. Neither is needed to install a system, and each
+        # rust is a multi hour build.
         "dev-python/charset-normalizer -native-extensions\n"
         "dev-vcs/git -rust\n",
         encoding="utf8",

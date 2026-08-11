@@ -274,12 +274,6 @@ def cli(
         unique=True,
     )
 
-    append_line_to_file(
-        path=Path("/etc/portage/package.mask/rust"),
-        line="dev-lang/rust-bin",
-        unique=True,
-    )
-
     install_packages(
         ["netdate"],
         force=False,
@@ -299,10 +293,14 @@ def cli(
     # first, so portage takes that branch and then has to bootstrap it: rust
     # 1.97 from 1.88 from 1.87 down to 1.81, which has no binary below it and
     # depends on itself. Portage prefers an already installed member of a ||
-    # group, so installing the binary first satisfies all of them at once.
-    # This is a bootstrap compiler, not a binary distribution: a rust cannot
-    # be compiled without a rust, and everything built with it is still built
-    # here from source.
+    # group, so installing the binary satisfies all of them at once.
+    #
+    # This script used to mask dev-lang/rust-bin, which is what made that
+    # bootstrap mandatory: a masked package cannot satisfy a || group, so the
+    # binary branch was never available. A rust cannot be compiled without a
+    # rust, so masking the only entry point does not make the system build
+    # from source, it makes the compiler unbuildable. Everything built with it
+    # is still built here from source.
     _emerge("--quiet", "--noreplace", "dev-lang/rust-bin",
             _out=sys.stdout, _err=sys.stderr)
 
