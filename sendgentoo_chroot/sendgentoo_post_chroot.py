@@ -294,6 +294,18 @@ def cli(
     )
     hs.Command("date")(_out=sys.stdout, _err=sys.stderr)
 
+    # Seed the rust bootstrap before the world update. Every cargo consumer
+    # depends on || ( dev-lang/rust dev-lang/rust-bin ), which lists source
+    # first, so portage takes that branch and then has to bootstrap it: rust
+    # 1.97 from 1.88 from 1.87 down to 1.81, which has no binary below it and
+    # depends on itself. Portage prefers an already installed member of a ||
+    # group, so installing the binary first satisfies all of them at once.
+    # This is a bootstrap compiler, not a binary distribution: a rust cannot
+    # be compiled without a rust, and everything built with it is still built
+    # here from source.
+    _emerge("--quiet", "--noreplace", "dev-lang/rust-bin",
+            _out=sys.stdout, _err=sys.stderr)
+
     _emerge("-uvNDq", "@world", _out=sys.stdout, _err=sys.stderr)
 
     _eselect("profile", "list", _out=sys.stdout, _err=sys.stderr)
