@@ -58,23 +58,14 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
 
     os.makedirs(mount_path / "usr" / "local" / "portage", exist_ok=True)
 
-    # /var/tmp/portage has to exist on the host to be bound into the chroot.
-    # Merging a package to get it as a side effect needs sources this machine
-    # has no route to, and the directory is all that was ever wanted.
-    _host_var_tmp_portage = Path("/var/tmp/portage")
-    _host_var_tmp_portage.mkdir(parents=True, exist_ok=True)
-    hs.Command("chown")("portage:portage", _host_var_tmp_portage.as_posix())
-
+    # Build on the target's disk, not in the netboot environment. This used to
+    # be bind mounted from the host, whose root is a tmpfs overlay over the
+    # squashfs and therefore capped at half of RAM: every package compiled
+    # into memory and a large one ran the machine out of space. The target's
+    # own filesystem has the whole disk.
     _var_tmp_portage = mount_path / "var" / "tmp" / "portage"
     os.makedirs(_var_tmp_portage, exist_ok=True)
     hs.Command("chown")("portage:portage", _var_tmp_portage.as_posix())
-
-    mount_something(
-        mountpoint=_var_tmp_portage,
-        mount_type="rbind",
-        slave=False,
-        source=Path("/var/tmp/portage"),
-    )
 
     # Every repository this environment has, not just gentoo: the target
     # cannot reach github or a rsync mirror, so anything it is not given here
