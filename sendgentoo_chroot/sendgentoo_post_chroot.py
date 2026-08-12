@@ -221,7 +221,7 @@ from portagetool import install_packages  # noqa: E402
         path_type=Path,
     ),
 )
-@click.option("--root-password-hash", is_flag=False, required=False, default=None)
+@click.option("--root-password", is_flag=False, required=False, default=None)
 @click.option("--pinebook-overlay", is_flag=True, required=False)
 @click.option(
     "--kernel",
@@ -237,7 +237,7 @@ def cli(
     ctx: click.Context,
     stdlib: str,
     boot_device: Path,
-    root_password_hash: None | str,
+    root_password: None | str,
     pinebook_overlay: bool,
     configure_kernel: bool,
     kernel: str,
@@ -535,10 +535,13 @@ def cli(
     )
     _rc_update("add", "sshd", "default", _out=sys.stdout, _err=sys.stderr)
 
-    if root_password_hash:
-        # -e: the value is already a crypt hash, so no plaintext appears in an
-        # argv anywhere between the deploy command line and here
-        hs.Command("chpasswd")("-e", _in=f"root:{root_password_hash}\n")
+    if root_password:
+        # Not -e, and not pre-hashed on the server: pambase configures
+        # pam_unix for yescrypt, so a sha512 entry written into the shadow file
+        # is not what this system's PAM produces, and login fails while passwd
+        # reports success. chpasswd here uses whatever this system is
+        # configured for. The password reaches it on stdin, never in an argv.
+        hs.Command("chpasswd")(_in=f"root:{root_password}\n")
     else:
         hs.Command("passwd")("-d", "root", _out=sys.stdout, _err=sys.stderr)
 
