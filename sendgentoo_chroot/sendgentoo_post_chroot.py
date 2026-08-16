@@ -528,10 +528,16 @@ def cli(
     hs.Command("chown")("root:portage", "/var/cache/ccache")
     hs.Command("chmod")("2775", "/var/cache/ccache")
 
-    append_line_to_file(
-        path=Path("/etc/ssh/sshd_config"),
-        line="PermitRootLogin yes",
-        unique=True,
+    # A drop-in, not an append. sshd takes the first value it obtains for a
+    # keyword, and sshd_config includes sshd_config.d before the end of the
+    # file, so anything appended after that Include loses to whatever the
+    # distribution shipped -- gentoo-pam.conf sets PasswordAuthentication no,
+    # which silently defeated an appended yes. Drop-ins are read in glob order,
+    # so this name sorts ahead of them and wins.
+    _sshd_dropin = Path("/etc/ssh/sshd_config.d/00-sendgentoo.conf")
+    _sshd_dropin.parent.mkdir(parents=True, exist_ok=True)
+    _sshd_dropin.write_text(
+        "PermitRootLogin yes\nPasswordAuthentication yes\n", encoding="utf8"
     )
     _rc_update("add", "sshd", "default", _out=sys.stdout, _err=sys.stderr)
 
