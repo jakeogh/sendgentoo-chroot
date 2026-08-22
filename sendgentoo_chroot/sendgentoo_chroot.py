@@ -49,11 +49,21 @@ def mount_for_chroot(*, ctx: click.Context, mount_path: Path) -> None:
         slave=True,
         source=Path("/dev"),
     )
+    # /run must be private, never a bind of the host's. The chroot shares the
+    # host PID namespace, so a shared /run hands every openrc invocation in
+    # the chroot the host's service state and pidfiles: openssh's
+    # pkg_postinst runs rc-service --ifstarted sshd restart when replacing a
+    # pre-split version (bug 709748), which read the netboot sshd as started
+    # through the shared /run, killed it through the shared pidfile, and
+    # bound the chroot's stock-config sshd on the freed port -- every
+    # install, minutes into the world update. A fresh tmpfs leaves the
+    # chroot's openrc seeing no started services, so --ifstarted is a no-op
+    # and nothing can act across the boundary in either direction.
     mount_something(
         mountpoint=mount_path / "run",
-        mount_type="bind",
-        slave=True,
-        source=Path("/run"),
+        mount_type="tmpfs",
+        slave=False,
+        source=None,
     )
 
     os.makedirs(mount_path / "usr" / "local" / "portage", exist_ok=True)

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sendgentoo-chroot"
+version = "1!0.0.1787392090"
+description = "Chroot and configure a Gentoo install target"
+authors = [
+    { name = "Justin Keogh", email = "github.com@v6y.net" },
+]
+dependencies = [
+    "click",
+    "asserttool @ git+https://github.com/jakeogh/asserttool@4bd23a06c2161e488415acde89c29537e6720cc1",
+    "boottool @ git+https://github.com/jakeogh/boottool@7070e3b7ae3c3c961216a9fda3cd1ad457fefc5a",
+    "click-auto-help @ git+https://github.com/jakeogh/click-auto-help@c53f57c78529a51ae9b03f579d7ee6f2d63ca03a",
+    "clicktool @ git+https://github.com/jakeogh/clicktool@a9894f9d3a06701c5f73cd8b2794028042c9b420",
+    "eprint @ git+https://github.com/jakeogh/eprint@6ee1deca0c24b684eb5093247d6bd22e11f1b057",
+    "filetool @ git+https://github.com/jakeogh/filetool@f972b0b7fe54b4055c2015dbbe26e53593b75359",
+    "globalverbose @ git+https://github.com/jakeogh/globalverbose@59abc758c18c0b85e9e61c1e14e5a64a81bb220e",
+    "hs @ git+https://github.com/jakeogh/hs@b33c88f35cd24e773fea6ca4758193c9e815536d",
+    "mounttool @ git+https://github.com/jakeogh/mounttool@171b99f6888ef3bd1858f341349b6c59417f0c10",
+    "portagetool @ git+https://github.com/jakeogh/portagetool@d0b54ddb2218fce1301368e4affef8ca4b6d337e",
+]
+license = "ISC"
+requires-python = ">=3.12"
+
+[project.urls]
+Homepage = "https://github.com/jakeogh/sendgentoo-chroot"
+
+[project.scripts]
+sendgentoo-chroot = "sendgentoo_chroot.sendgentoo_chroot:cli"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = false
+
+[tool.setuptools.packages.find]
+exclude = [
+    "tests",
+]
+
+[tool.setuptools.package-data]
+sendgentoo_chroot = [
+    "py.typed",
+]

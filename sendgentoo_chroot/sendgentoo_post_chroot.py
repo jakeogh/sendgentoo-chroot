@@ -534,10 +534,22 @@ def cli(
     # distribution shipped -- gentoo-pam.conf sets PasswordAuthentication no,
     # which silently defeated an appended yes. Drop-ins are read in glob order,
     # so this name sorts ahead of them and wins.
+    #
+    # keyboard-interactive is off because it can never verify root here: its
+    # PAM conversation runs in the unprivileged sshd process, whose pam_unix
+    # delegates to unix_chkpwd, and that helper permanently drops its
+    # setgid-shadow privilege when a non-root caller names a different user,
+    # so the check fails for any password. Clients try keyboard-interactive
+    # before password, so offering it puts a dead prompt first and its
+    # failures count toward MaxAuthTries. The password method authenticates
+    # through the privileged monitor and works.
     _sshd_dropin = Path("/etc/ssh/sshd_config.d/00-sendgentoo.conf")
     _sshd_dropin.parent.mkdir(parents=True, exist_ok=True)
     _sshd_dropin.write_text(
-        "PermitRootLogin yes\nPasswordAuthentication yes\n", encoding="utf8"
+        "PermitRootLogin yes\n"
+        "PasswordAuthentication yes\n"
+        "KbdInteractiveAuthentication no\n",
+        encoding="utf8",
     )
     _rc_update("add", "sshd", "default", _out=sys.stdout, _err=sys.stderr)
 
