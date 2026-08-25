@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sendgentoo-chroot"
-version = "1!0.0.1787633994"
+version = "1!0.0.1787634054"
 description = "Chroot and configure a Gentoo install target"
 authors = [
     { name = "Justin Keogh", email = "github.com@v6y.net" },
@@ -12,13 +12,13 @@ authors = [
 dependencies = [
     "click",
     "asserttool @ git+https://github.com/jakeogh/asserttool@4bd23a06c2161e488415acde89c29537e6720cc1",
-    "boottool @ git+https://github.com/jakeogh/boottool@a167cc8bf1a5c4ca0b797f2f9c2f0923fe4fa553",
+    "boottool @ git+https://github.com/jakeogh/boottool@73bc9177d14aca6b7c6792cd6496e05b7a5c2211",
     "click-auto-help @ git+https://github.com/jakeogh/click-auto-help@c53f57c78529a51ae9b03f579d7ee6f2d63ca03a",
     "clicktool @ git+https://github.com/jakeogh/clicktool@4bc98af7590652693aef664af7485acde40688c2",
     "eprint @ git+https://github.com/jakeogh/eprint@6ee1deca0c24b684eb5093247d6bd22e11f1b057",
     "filetool @ git+https://github.com/jakeogh/filetool@f972b0b7fe54b4055c2015dbbe26e53593b75359",
     "hs @ git+https://github.com/jakeogh/hs@b33c88f35cd24e773fea6ca4758193c9e815536d",
-    "mounttool @ git+https://github.com/jakeogh/mounttool@171b99f6888ef3bd1858f341349b6c59417f0c10",
+    "mounttool @ git+https://github.com/jakeogh/mounttool@1dc451c21a89a45ffb69161a6ed7432c8192d9a6",
     "portagetool @ git+https://github.com/jakeogh/portagetool@b9aa9ee04976463fa1d01ce5a92cbc70e1081ba3",
 ]
 license = "ISC"
