@@ -193,10 +193,9 @@ from asserttool import icp  # noqa: E402
 from boottool import install_grub  # noqa: E402
 from clicktool import click_add_options  # noqa: E402
 from clicktool import click_global_options  # noqa: E402
-from clicktool import tvicgvd  # noqa: E402
+from clicktool import tvic  # noqa: E402
 from eprint import eprint  # noqa: E402
 from filetool import append_line_to_file  # noqa: E402
-from globalverbose import gvd  # noqa: E402
 from mounttool import path_is_mounted  # noqa: E402
 from portagetool import add_accept_keyword  # noqa: E402
 from portagetool import install_packages  # noqa: E402
@@ -245,12 +244,11 @@ def cli(
     dict_output: bool,
     verbose: bool = False,
 ) -> None:
-    tty, verbose = tvicgvd(
+    tty, verbose = tvic(
         ctx=ctx,
         verbose=verbose,
         verbose_inf=verbose_inf,
         ic=ic,
-        gvd=gvd,
     )
 
     icp(

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sendgentoo-chroot"
-version = "1!0.0.1787634123"
+version = "1!0.0.1787634127"
 description = "Chroot and configure a Gentoo install target"
 authors = [
     { name = "Justin Keogh", email = "github.com@v6y.net" },
