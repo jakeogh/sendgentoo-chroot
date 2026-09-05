@@ -175,14 +175,18 @@ emerge_force(["dev-python/smarttool"])  # /etc/local.d/all_block_devices_passed.
 # than at first boot so this chroot's remaining emerges use the flags, and the
 # source line is added first because a generated file nothing reads is worse
 # than no file.
+#
+# The groups themselves arrive as a package, so nothing is copied into the
+# target. They are merged before autodetect so a detected dimension group can
+# be recorded rather than reported as absent, and base is activated
+# explicitly: a fresh target has no state, and sync with no active layer
+# writes nothing, which left /etc/portage/bashrc absent and compile-kernel
+# refusing to build.
 emerge_force(["app-portage/cfg-layer"])
-append_make_conf("source /etc/cfg-layer/autodetect.conf")
-run("cfg-layer", "autodetect")
-
-# the groups themselves arrive as a package, so nothing is copied into the
-# target: sync materializes every managed file from what was merged here,
-# including /etc/portage/patches
 emerge_force(["app-portage/cfg-layer-groups"])
+append_make_conf("source /etc/cfg-layer/autodetect.conf")
+run("cfg-layer", "group", "activate", "base")
+run("cfg-layer", "autodetect")
 run("cfg-layer", "sync")
 
 
